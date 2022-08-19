@@ -662,6 +662,15 @@ impl ArgMatches {
         };
         Some(i)
     }
+
+    /// Return all the keys in this ArgsMatches
+    pub fn get_keys(&self) -> Vec<String> {
+	let mut keys: Vec<String> = Vec::new();
+	for key in self.args.keys() {
+	    keys.push(key.as_str().to_string());
+	}
+	keys
+    }
 }
 
 /// # Subcommands
@@ -1065,6 +1074,12 @@ impl ArgMatches {
         }
 
         self.args.get(arg)
+    }
+
+    /// Public interface to get_arg
+    #[inline]
+    pub fn get_arg_by_name(&self, arg: &str) -> Option<&MatchedArg> {
+	self.get_arg(arg)
     }
 
     #[inline]
@@ -1507,5 +1522,21 @@ mod tests {
             .expect("present")
             .len();
         assert_eq!(l, 1);
+    }
+
+    #[test]
+    fn get_keys() {
+        let l = crate::Command::new("test")
+            .arg(
+                crate::Arg::new("POTATO")
+                    .action(ArgAction::Set)
+                    .num_args(1..)
+                    .required(true),
+            )
+            .try_get_matches_from(["test", "one"])
+            .unwrap();
+
+	assert_eq!(l.get_keys().len(), 1);
+	assert_eq!(l.get_keys().first().unwrap(), "POTATO");
     }
 }

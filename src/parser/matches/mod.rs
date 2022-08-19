@@ -13,4 +13,4 @@ pub use value_source::ValueSource;
 
 pub(crate) use any_value::AnyValue;
 pub(crate) use arg_matches::SubCommand;
-pub(crate) use matched_arg::MatchedArg;
+pub use matched_arg::MatchedArg;

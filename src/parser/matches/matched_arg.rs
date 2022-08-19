@@ -13,7 +13,7 @@ use crate::util::eq_ignore_case;
 use crate::INTERNAL_ERROR_MSG;
 
 #[derive(Debug, Clone)]
-pub(crate) struct MatchedArg {
+pub struct MatchedArg {
     source: Option<ValueSource>,
     indices: Vec<usize>,
     type_id: Option<AnyValueId>,
@@ -159,7 +159,7 @@ impl MatchedArg {
         }
     }
 
-    pub(crate) fn type_id(&self) -> Option<AnyValueId> {
+    pub fn type_id(&self) -> Option<AnyValueId> {
         self.type_id
     }
 

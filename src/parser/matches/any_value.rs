@@ -53,6 +53,11 @@ impl AnyValueId {
             type_name: std::any::type_name::<A>(),
         }
     }
+
+    /// Get the type_id of this AnyValueId
+    pub fn type_id(&self) -> std::any::TypeId {
+	self.type_id
+    }
 }
 
 impl PartialEq for AnyValueId {
