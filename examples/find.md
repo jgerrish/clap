@@ -2,24 +2,22 @@
 
 ```console
 $ find --help
-clap 4.0.0-alpha.0
 A simple to use, efficient, and full-featured Command Line Argument Parser
 
-USAGE:
-    find[EXE] [OPTIONS] --name <NAME>
+Usage: find[EXE] [OPTIONS]
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 
 TESTS:
-        --empty          File is empty and is either a regular file or a directory
-        --name <NAME>    Base of file name (the path with the leading directories removed) matches
-                         shell pattern pattern
+      --empty        File is empty and is either a regular file or a directory
+      --name <NAME>  Base of file name (the path with the leading directories removed) matches shell
+                     pattern pattern
 
 OPERATORS:
-    -o, --or     expr2 is not evaluate if exp1 is true
-    -a, --and    Same as `expr1 expr1`
+  -o, --or   expr2 is not evaluate if exp1 is true
+  -a, --and  Same as `expr1 expr1`
 
 $ find --empty -o --name .keep
 [

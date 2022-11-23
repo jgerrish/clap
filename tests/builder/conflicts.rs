@@ -1,6 +1,7 @@
-use super::utils;
-
 use clap::{arg, error::ErrorKind, Arg, ArgAction, ArgGroup, Command};
+
+#[cfg(feature = "error-context")]
+use super::utils;
 
 #[test]
 fn flag_conflict() {
@@ -37,10 +38,13 @@ fn flag_conflict_with_all() {
 
 #[test]
 fn exclusive_flag() {
-    let result = Command::new("flag_conflict")
+    let cmd = Command::new("flag_conflict")
         .arg(arg!(-f --flag "some flag").exclusive(true))
-        .arg(arg!(-o --other "some flag"))
-        .try_get_matches_from(vec!["myprog", "-o", "-f"]);
+        .arg(arg!(-o --other "some flag"));
+    let result = cmd.clone().try_get_matches_from(vec!["myprog", "-f"]);
+    assert!(result.is_ok(), "{}", result.unwrap_err());
+
+    let result = cmd.clone().try_get_matches_from(vec!["myprog", "-o", "-f"]);
     assert!(result.is_err());
     let err = result.err().unwrap();
     assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
@@ -49,12 +53,8 @@ fn exclusive_flag() {
 #[test]
 fn exclusive_option() {
     let result = Command::new("flag_conflict")
-        .arg(
-            arg!(-f --flag <VALUE> "some flag")
-                .required(false)
-                .exclusive(true),
-        )
-        .arg(arg!(-o --other <VALUE> "some flag").required(false))
+        .arg(arg!(-f --flag <VALUE> "some flag").exclusive(true))
+        .arg(arg!(-o --other <VALUE> "some flag"))
         .try_get_matches_from(vec!["myprog", "-o=val1", "-f=val2"]);
     assert!(result.is_err());
     let err = result.err().unwrap();
@@ -64,11 +64,7 @@ fn exclusive_option() {
 #[test]
 fn not_exclusive_with_defaults() {
     let result = Command::new("flag_conflict")
-        .arg(
-            arg!(-f --flag <VALUE> "some flag")
-                .required(false)
-                .exclusive(true),
-        )
+        .arg(arg!(-f --flag <VALUE> "some flag").exclusive(true))
         .arg(
             arg!(-o --other <VALUE> "some flag")
                 .required(false)
@@ -79,19 +75,28 @@ fn not_exclusive_with_defaults() {
 }
 
 #[test]
+fn not_exclusive_with_group() {
+    let cmd = Command::new("test")
+        .group(clap::ArgGroup::new("test").arg("foo"))
+        .arg(
+            clap::Arg::new("foo")
+                .long("foo")
+                .exclusive(true)
+                .action(clap::ArgAction::SetTrue),
+        );
+    let result = cmd.try_get_matches_from(vec!["test", "--foo"]);
+    assert!(result.is_ok(), "{}", result.unwrap_err());
+}
+
+#[test]
 fn default_doesnt_activate_exclusive() {
     let result = Command::new("flag_conflict")
         .arg(
             arg!(-f --flag <VALUE> "some flag")
-                .required(false)
                 .exclusive(true)
                 .default_value("val2"),
         )
-        .arg(
-            arg!(-o --other <VALUE> "some flag")
-                .required(false)
-                .default_value("val1"),
-        )
+        .arg(arg!(-o --other <VALUE> "some flag").default_value("val1"))
         .try_get_matches_from(vec!["myprog"]);
     assert!(result.is_ok(), "{}", result.unwrap_err());
 }
@@ -135,14 +140,9 @@ fn arg_conflicts_with_group_with_multiple_sources() {
     let mut cmd = clap::Command::new("group_conflict")
         .arg(clap::arg!(-f --flag "some flag").conflicts_with("gr"))
         .group(clap::ArgGroup::new("gr").multiple(true))
-        .arg(
-            clap::arg!(--some <name> "some arg")
-                .required(false)
-                .group("gr"),
-        )
+        .arg(clap::arg!(--some <name> "some arg").group("gr"))
         .arg(
             clap::arg!(--other <secs> "other arg")
-                .required(false)
                 .default_value("1000")
                 .group("gr"),
         );
@@ -289,13 +289,14 @@ fn get_arg_conflicts_with_group() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn conflict_output() {
-    static CONFLICT_ERR: &str = "error: The argument '--flag...' cannot be used with '-F'
+    static CONFLICT_ERR: &str = "\
+error: The argument '--flag...' cannot be used with '-F'
 
-USAGE:
-    clap-test --flag... --long-option-2 <option2> <positional> <positional2>
+Usage: clap-test --flag... --long-option-2 <option2> <positional> <positional2> [positional3]...
 
-For more information try --help
+For more information try '--help'
 ";
 
     utils::assert_output(
@@ -307,13 +308,14 @@ For more information try --help
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn conflict_output_rev() {
-    static CONFLICT_ERR_REV: &str = "error: The argument '-F' cannot be used with '--flag...'
+    static CONFLICT_ERR_REV: &str = "\
+error: The argument '-F' cannot be used with '--flag...'
 
-USAGE:
-    clap-test -F --long-option-2 <option2> <positional> <positional2>
+Usage: clap-test -F --long-option-2 <option2> <positional> <positional2> [positional3]...
 
-For more information try --help
+For more information try '--help'
 ";
 
     utils::assert_output(
@@ -325,13 +327,28 @@ For more information try --help
 }
 
 #[test]
+#[cfg(feature = "error-context")]
+fn conflict_output_repeat() {
+    static ERR: &str = "\
+error: The argument '-F' was provided more than once, but cannot be used multiple times
+
+Usage: clap-test [OPTIONS] [positional] [positional2] [positional3]... [COMMAND]
+
+For more information try '--help'
+";
+
+    utils::assert_output(utils::complex_app(), "clap-test -F -F", ERR, true);
+}
+
+#[test]
+#[cfg(feature = "error-context")]
 fn conflict_output_with_required() {
-    static CONFLICT_ERR: &str = "error: The argument '--flag...' cannot be used with '-F'
+    static CONFLICT_ERR: &str = "\
+error: The argument '--flag...' cannot be used with '-F'
 
-USAGE:
-    clap-test --flag... --long-option-2 <option2> <positional> <positional2>
+Usage: clap-test --flag... --long-option-2 <option2> <positional> <positional2> [positional3]...
 
-For more information try --help
+For more information try '--help'
 ";
 
     utils::assert_output(
@@ -343,13 +360,14 @@ For more information try --help
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn conflict_output_rev_with_required() {
-    static CONFLICT_ERR_REV: &str = "error: The argument '-F' cannot be used with '--flag...'
+    static CONFLICT_ERR_REV: &str = "\
+error: The argument '-F' cannot be used with '--flag...'
 
-USAGE:
-    clap-test -F --long-option-2 <option2> <positional> <positional2>
+Usage: clap-test -F --long-option-2 <option2> <positional> <positional2> [positional3]...
 
-For more information try --help
+For more information try '--help'
 ";
 
     utils::assert_output(
@@ -361,15 +379,16 @@ For more information try --help
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn conflict_output_three_conflicting() {
-    static CONFLICT_ERR_THREE: &str = "error: The argument '--one' cannot be used with:
-    --two
-    --three
+    static CONFLICT_ERR_THREE: &str = "\
+error: The argument '--one' cannot be used with:
+  --two
+  --three
 
-USAGE:
-    three_conflicting_arguments --one
+Usage: three_conflicting_arguments --one
 
-For more information try --help
+For more information try '--help'
 ";
 
     let cmd = Command::new("three_conflicting_arguments")
@@ -400,6 +419,7 @@ For more information try --help
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn two_conflicting_arguments() {
     let a = Command::new("two_conflicting_arguments")
         .arg(
@@ -427,6 +447,7 @@ fn two_conflicting_arguments() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn three_conflicting_arguments() {
     let a = Command::new("three_conflicting_arguments")
         .arg(
@@ -480,11 +501,7 @@ fn conflicts_with_invalid_arg() {
 #[test]
 fn conflict_with_unused_default() {
     let result = Command::new("conflict")
-        .arg(
-            arg!(-o --opt <opt> "some opt")
-                .required(false)
-                .default_value("default"),
-        )
+        .arg(arg!(-o --opt <opt> "some opt").default_value("default"))
         .arg(
             arg!(-f --flag "some flag")
                 .conflicts_with("opt")
@@ -508,7 +525,6 @@ fn conflicts_with_alongside_default() {
         .arg(
             arg!(-o --opt <opt> "some opt")
                 .default_value("default")
-                .required(false)
                 .conflicts_with("flag"),
         )
         .arg(arg!(-f --flag "some flag").action(ArgAction::SetTrue))
@@ -644,7 +660,7 @@ fn subcommand_conflict_negates_required() {
     let cmd = Command::new("test")
         .args_conflicts_with_subcommands(true)
         .subcommand(Command::new("config"))
-        .arg(arg!(-p --place <"place id"> "Place ID to open"));
+        .arg(arg!(-p --place <"place id"> "Place ID to open").required(true));
 
     let result = cmd.try_get_matches_from(["test", "config"]);
     assert!(

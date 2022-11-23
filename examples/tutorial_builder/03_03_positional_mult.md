@@ -1,22 +1,23 @@
 ```console
 $ 03_03_positional_mult --help
-clap [..]
 A simple to use, efficient, and full-featured Command Line Argument Parser
 
-USAGE:
-    03_03_positional_mult[EXE] [name]...
+Usage: 03_03_positional_mult[EXE] [name]...
 
-ARGS:
-    <name>...    
+Arguments:
+  [name]...  
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 
 $ 03_03_positional_mult
-name: None
+names: []
 
 $ 03_03_positional_mult bob
-name: Some("bob")
+names: ["bob"]
+
+$ 03_03_positional_mult bob john
+names: ["bob", "john"]
 
 ```

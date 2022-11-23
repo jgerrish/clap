@@ -2,25 +2,22 @@ bin.name = "stdio-fixture"
 args = ["help"]
 status.code = 0
 stdout = """
-stdio-fixture 1.0
+Usage: stdio-fixture[EXE] [OPTIONS] [COMMAND]
 
-USAGE:
-    stdio-fixture[EXE] [OPTIONS] [SUBCOMMAND]
+Commands:
+  more
+          
+  help
+          Print this message or the help of the given subcommand(s)
 
-OPTIONS:
-        --verbose
-            more log
+Options:
+      --verbose
+          more log
 
-    -h, --help
-            Print help information
+  -h, --help
+          Print help information (use `-h` for a summary)
 
-    -V, --version
-            Print version information
-
-SUBCOMMANDS:
-    more
-            
-    help
-            Print this message or the help of the given subcommand(s)
+  -V, --version
+          Print version information
 """
 stderr = ""

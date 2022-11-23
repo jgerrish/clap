@@ -1,16 +1,7 @@
-use super::utils;
 use clap::{arg, Arg, ArgAction, Command};
 
-const USE_FLAG_AS_ARGUMENT: &str =
-    "error: Found argument '--another-flag' which wasn't expected, or isn't valid in this context
-
-\tIf you tried to supply `--another-flag` as a value rather than a flag, use `-- --another-flag`
-
-USAGE:
-    mycat [OPTIONS] [filename]
-
-For more information try --help
-";
+#[cfg(feature = "error-context")]
+use super::utils;
 
 #[test]
 fn flag_using_short() {
@@ -28,6 +19,7 @@ fn flag_using_short() {
 #[test]
 fn lots_o_flags_sep() {
     let r = Command::new("opts")
+        .args_override_self(true)
         .arg(arg!(o: -o ... "some flag").action(ArgAction::SetTrue))
         .try_get_matches_from(vec![
             "", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o", "-o",
@@ -62,6 +54,7 @@ fn lots_o_flags_sep() {
 #[test]
 fn lots_o_flags_combined() {
     let r = Command::new("opts")
+        .args_override_self(true)
         .arg(arg!(o: -o ... "some flag").action(ArgAction::SetTrue))
         .try_get_matches_from(vec![
             "",
@@ -144,7 +137,36 @@ fn multiple_flags_in_single() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
+fn unexpected_value_error() {
+    const USE_FLAG_AS_ARGUMENT: &str = "\
+error: The value 'foo' was provided to '--a-flag' but it wasn't expecting any more values
+
+Usage: mycat --a-flag [filename]
+
+For more information try '--help'
+";
+
+    let cmd = Command::new("mycat")
+        .arg(Arg::new("filename"))
+        .arg(Arg::new("a-flag").long("a-flag").action(ArgAction::SetTrue));
+
+    utils::assert_output(cmd, "mycat --a-flag=foo", USE_FLAG_AS_ARGUMENT, true);
+}
+
+#[test]
+#[cfg(feature = "error-context")]
 fn issue_1284_argument_in_flag_style() {
+    const USE_FLAG_AS_ARGUMENT: &str = "\
+error: Found argument '--another-flag' which wasn't expected, or isn't valid in this context
+
+  If you tried to supply '--another-flag' as a value rather than a flag, use '-- --another-flag'
+
+Usage: mycat [OPTIONS] [filename]
+
+For more information try '--help'
+";
+
     let cmd = Command::new("mycat")
         .arg(Arg::new("filename"))
         .arg(Arg::new("a-flag").long("a-flag").action(ArgAction::SetTrue));
@@ -177,16 +199,16 @@ fn issue_1284_argument_in_flag_style() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn issue_2308_multiple_dashes() {
-    static MULTIPLE_DASHES: &str =
-        "error: Found argument '-----' which wasn't expected, or isn't valid in this context
+    static MULTIPLE_DASHES: &str = "\
+error: Found argument '-----' which wasn't expected, or isn't valid in this context
 
-	If you tried to supply `-----` as a value rather than a flag, use `-- -----`
+  If you tried to supply '-----' as a value rather than a flag, use '-- -----'
 
-USAGE:
-    test <arg>
+Usage: test <arg>
 
-For more information try --help
+For more information try '--help'
 ";
     let cmd = Command::new("test").arg(Arg::new("arg").action(ArgAction::Set).required(true));
 

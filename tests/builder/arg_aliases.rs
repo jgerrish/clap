@@ -190,17 +190,16 @@ fn alias_on_a_subcommand_option() {
 
 #[test]
 fn invisible_arg_aliases_help_output() {
-    static SC_INVISIBLE_ALIAS_HELP: &str = "ct-test 1.2
+    static SC_INVISIBLE_ALIAS_HELP: &str = "\
 Some help
 
-USAGE:
-    ct test [OPTIONS]
+Usage: ct test [OPTIONS]
 
-OPTIONS:
-    -o, --opt <opt>    
-    -f, --flag         
-    -h, --help         Print help information
-    -V, --version      Print version information
+Options:
+  -o, --opt <opt>  
+  -f, --flag       
+  -h, --help       Print help information
+  -V, --version    Print version information
 ";
 
     let cmd = Command::new("ct").author("Salim Afiune").subcommand(
@@ -221,17 +220,16 @@ OPTIONS:
 
 #[test]
 fn visible_arg_aliases_help_output() {
-    static SC_VISIBLE_ALIAS_HELP: &str = "ct-test 1.2
+    static SC_VISIBLE_ALIAS_HELP: &str = "\
 Some help
 
-USAGE:
-    ct test [OPTIONS]
+Usage: ct test [OPTIONS]
 
-OPTIONS:
-    -o, --opt <opt>    [aliases: visible]
-    -f, --flag         [aliases: v_flg, flag2, flg3]
-    -h, --help         Print help information
-    -V, --version      Print version information
+Options:
+  -o, --opt <opt>  [aliases: visible]
+  -f, --flag       [aliases: v_flg, flag2, flg3]
+  -h, --help       Print help information
+  -V, --version    Print version information
 ";
 
     let cmd = Command::new("ct").author("Salim Afiune").subcommand(

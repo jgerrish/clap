@@ -2,7 +2,8 @@
 ///
 /// # Examples
 ///
-/// ```rust
+#[cfg_attr(not(feature = "help"), doc = " ```ignore")]
+#[cfg_attr(feature = "help", doc = " ```")]
 /// # use clap::Command;
 /// # use clap::Arg;
 /// let cmd = Command::new("mycmd")
@@ -25,6 +26,10 @@
 #[allow(missing_copy_implementations)] // In the future, we may accept `Box<dyn ...>`
 pub enum ArgAction {
     /// When encountered, store the associated value(s) in [`ArgMatches`][crate::ArgMatches]
+    ///
+    /// **NOTE:** If the argument has previously been seen, it will result in a
+    /// [`ArgumentConflict`][crate::error::ErrorKind::ArgumentConflict] unless
+    /// [`Command::args_override_self(true)`][crate::Command::args_override_self] is set.
     ///
     /// # Examples
     ///
@@ -75,6 +80,10 @@ pub enum ArgAction {
     /// No value is allowed. To optionally accept a value, see
     /// [`Arg::default_missing_value`][super::Arg::default_missing_value]
     ///
+    /// **NOTE:** If the argument has previously been seen, it will result in a
+    /// [`ArgumentConflict`][crate::error::ErrorKind::ArgumentConflict] unless
+    /// [`Command::args_override_self(true)`][crate::Command::args_override_self] is set.
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -87,7 +96,7 @@ pub enum ArgAction {
     ///             .action(clap::ArgAction::SetTrue)
     ///     );
     ///
-    /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag", "--flag"]).unwrap();
+    /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag"]).unwrap();
     /// assert!(matches.contains_id("flag"));
     /// assert_eq!(
     ///     matches.get_one::<bool>("flag").copied(),
@@ -101,6 +110,41 @@ pub enum ArgAction {
     ///     Some(false)
     /// );
     /// ```
+    ///
+    /// You can use [`TypedValueParser::map`][crate::builder::TypedValueParser::map] to have the
+    /// flag control an application-specific type:
+    /// ```rust
+    /// # use clap::Command;
+    /// # use clap::Arg;
+    /// # use clap::builder::TypedValueParser as _;
+    /// # use clap::builder::BoolishValueParser;
+    /// let cmd = Command::new("mycmd")
+    ///     .arg(
+    ///         Arg::new("flag")
+    ///             .long("flag")
+    ///             .action(clap::ArgAction::SetTrue)
+    ///             .value_parser(
+    ///                 BoolishValueParser::new()
+    ///                 .map(|b| -> usize {
+    ///                     if b { 10 } else { 5 }
+    ///                 })
+    ///             )
+    ///     );
+    ///
+    /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag"]).unwrap();
+    /// assert!(matches.contains_id("flag"));
+    /// assert_eq!(
+    ///     matches.get_one::<usize>("flag").copied(),
+    ///     Some(10)
+    /// );
+    ///
+    /// let matches = cmd.try_get_matches_from(["mycmd"]).unwrap();
+    /// assert!(matches.contains_id("flag"));
+    /// assert_eq!(
+    ///     matches.get_one::<usize>("flag").copied(),
+    ///     Some(5)
+    /// );
+    /// ```
     SetTrue,
     /// When encountered, act as if `"false"` was encountered on the command-line
     ///
@@ -108,6 +152,10 @@ pub enum ArgAction {
     ///
     /// No value is allowed. To optionally accept a value, see
     /// [`Arg::default_missing_value`][super::Arg::default_missing_value]
+    ///
+    /// **NOTE:** If the argument has previously been seen, it will result in a
+    /// [`ArgumentConflict`][crate::error::ErrorKind::ArgumentConflict] unless
+    /// [`Command::args_override_self(true)`][crate::Command::args_override_self] is set.
     ///
     /// # Examples
     ///
@@ -121,7 +169,7 @@ pub enum ArgAction {
     ///             .action(clap::ArgAction::SetFalse)
     ///     );
     ///
-    /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag", "--flag"]).unwrap();
+    /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag"]).unwrap();
     /// assert!(matches.contains_id("flag"));
     /// assert_eq!(
     ///     matches.get_one::<bool>("flag").copied(),
@@ -158,15 +206,15 @@ pub enum ArgAction {
     /// let matches = cmd.clone().try_get_matches_from(["mycmd", "--flag", "--flag"]).unwrap();
     /// assert!(matches.contains_id("flag"));
     /// assert_eq!(
-    ///     matches.get_one::<u8>("flag").copied(),
-    ///     Some(2)
+    ///     matches.get_count("flag"),
+    ///     2
     /// );
     ///
     /// let matches = cmd.try_get_matches_from(["mycmd"]).unwrap();
     /// assert!(matches.contains_id("flag"));
     /// assert_eq!(
-    ///     matches.get_one::<u8>("flag").copied(),
-    ///     Some(0)
+    ///     matches.get_count("flag"),
+    ///     0
     /// );
     /// ```
     Count,
@@ -176,7 +224,8 @@ pub enum ArgAction {
     ///
     /// # Examples
     ///
-    /// ```rust
+    #[cfg_attr(not(feature = "help"), doc = " ```ignore")]
+    #[cfg_attr(feature = "help", doc = " ```")]
     /// # use clap::Command;
     /// # use clap::Arg;
     /// let cmd = Command::new("mycmd")
@@ -283,8 +332,8 @@ impl ArgAction {
         match self {
             Self::Set => None,
             Self::Append => None,
-            Self::SetTrue => Some(AnyValueId::of::<bool>()),
-            Self::SetFalse => Some(AnyValueId::of::<bool>()),
+            Self::SetTrue => None,
+            Self::SetFalse => None,
             Self::Count => Some(AnyValueId::of::<CountType>()),
             Self::Help => None,
             Self::Version => None,

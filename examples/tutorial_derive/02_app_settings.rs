@@ -1,12 +1,12 @@
 use clap::Parser;
 
 #[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
-#[clap(allow_negative_numbers = true)]
+#[command(author, version, about, long_about = None)]
+#[command(next_line_help = true)]
 struct Cli {
-    #[clap(long)]
+    #[arg(long)]
     two: String,
-    #[clap(long)]
+    #[arg(long)]
     one: String,
 }
 

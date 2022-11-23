@@ -1,33 +1,6 @@
-use super::utils;
-
 use clap::{arg, error::ErrorKind, Arg, ArgAction, ArgGroup, Command, Id};
 
-static REQ_GROUP_USAGE: &str = "error: The following required arguments were not provided:
-    <base|--delete>
-
-USAGE:
-    clap-test <base|--delete>
-
-For more information try --help
-";
-
-static REQ_GROUP_CONFLICT_USAGE: &str =
-    "error: The argument '--delete' cannot be used with '<base>'
-
-USAGE:
-    clap-test <base|--delete>
-
-For more information try --help
-";
-
-static REQ_GROUP_CONFLICT_ONLY_OPTIONS: &str =
-    "error: The argument '--delete' cannot be used with '--all'
-
-USAGE:
-    clap-test <--all|--delete>
-
-For more information try --help
-";
+use super::utils;
 
 #[test]
 fn required_group_missing_arg() {
@@ -87,7 +60,7 @@ fn arg_group_new_of_arg_name() {
 fn group_single_value() {
     let res = Command::new("group")
         .arg(arg!(-c --color [color] "some option"))
-        .arg(arg!(-n --hostname <name> "another option").required(false))
+        .arg(arg!(-n --hostname <name> "another option"))
         .group(ArgGroup::new("grp").args(["hostname", "color"]))
         .try_get_matches_from(vec!["", "-c", "blue"]);
     assert!(res.is_ok(), "{}", res.unwrap_err());
@@ -100,9 +73,10 @@ fn group_single_value() {
 #[test]
 fn group_empty() {
     let res = Command::new("group")
+        .arg(arg!(-f --flag "some flag"))
         .arg(arg!(-c --color [color] "some option"))
-        .arg(arg!(-n --hostname <name> "another option").required(false))
-        .group(ArgGroup::new("grp").args(["hostname", "color"]))
+        .arg(arg!(-n --hostname <name> "another option"))
+        .group(ArgGroup::new("grp").args(["hostname", "color", "flag"]))
         .try_get_matches_from(vec![""]);
     assert!(res.is_ok(), "{}", res.unwrap_err());
 
@@ -114,12 +88,13 @@ fn group_empty() {
 #[test]
 fn group_required_flags_empty() {
     let result = Command::new("group")
+        .arg(arg!(-f --flag "some flag"))
         .arg(arg!(-c --color "some option"))
-        .arg(arg!(-n --hostname <name> "another option").required(false))
+        .arg(arg!(-n --hostname <name> "another option"))
         .group(
             ArgGroup::new("grp")
                 .required(true)
-                .args(["hostname", "color"]),
+                .args(["hostname", "color", "flag"]),
         )
         .try_get_matches_from(vec![""]);
     assert!(result.is_err());
@@ -130,9 +105,10 @@ fn group_required_flags_empty() {
 #[test]
 fn group_multi_value_single_arg() {
     let res = Command::new("group")
+        .arg(arg!(-f --flag "some flag"))
         .arg(arg!(-c --color <color> "some option").num_args(1..))
-        .arg(arg!(-n --hostname <name> "another option").required(false))
-        .group(ArgGroup::new("grp").args(["hostname", "color"]))
+        .arg(arg!(-n --hostname <name> "another option"))
+        .group(ArgGroup::new("grp").args(["hostname", "color", "flag"]))
         .try_get_matches_from(vec!["", "-c", "blue", "red", "green"]);
     assert!(res.is_ok(), "{:?}", res.unwrap_err().kind());
 
@@ -153,7 +129,16 @@ fn empty_group() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn req_group_usage_string() {
+    static REQ_GROUP_USAGE: &str = "error: The following required arguments were not provided:
+  <base|--delete>
+
+Usage: clap-test <base|--delete>
+
+For more information try '--help'
+";
+
     let cmd = Command::new("req_group")
         .arg(arg!([base] "Base commit"))
         .arg(arg!(
@@ -169,7 +154,16 @@ fn req_group_usage_string() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn req_group_with_conflict_usage_string() {
+    static REQ_GROUP_CONFLICT_USAGE: &str = "\
+error: The argument '--delete' cannot be used with '[base]'
+
+Usage: clap-test <base|--delete>
+
+For more information try '--help'
+";
+
     let cmd = Command::new("req_group")
         .arg(arg!([base] "Base commit").conflicts_with("delete"))
         .arg(arg!(
@@ -190,7 +184,16 @@ fn req_group_with_conflict_usage_string() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn req_group_with_conflict_usage_string_only_options() {
+    static REQ_GROUP_CONFLICT_ONLY_OPTIONS: &str = "\
+error: The argument '--delete' cannot be used with '--all'
+
+Usage: clap-test <--all|--delete>
+
+For more information try '--help'
+";
+
     let cmd = Command::new("req_group")
         .arg(arg!(-a --all "All").conflicts_with("delete"))
         .arg(arg!(
@@ -249,8 +252,8 @@ fn group_multiple_args_error() {
 #[test]
 fn group_overrides_required() {
     let command = Command::new("group")
-        .arg(arg!(--foo <FOO>))
-        .arg(arg!(--bar <BAR>))
+        .arg(arg!(--foo <FOO>).required(true))
+        .arg(arg!(--bar <BAR>).required(true))
         .group(ArgGroup::new("group").args(["foo", "bar"]).required(true));
     let result = command.try_get_matches_from(vec!["group", "--foo", "value"]);
     assert!(result.is_ok(), "{}", result.unwrap_err());
@@ -261,16 +264,14 @@ fn group_overrides_required() {
 
 #[test]
 fn group_usage_use_val_name() {
-    static GROUP_USAGE_USE_VAL_NAME: &str = "prog 
+    static GROUP_USAGE_USE_VAL_NAME: &str = "\
+Usage: prog <A>
 
-USAGE:
-    prog <A>
+Arguments:
+  [A]  
 
-ARGS:
-    <A>    
-
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help information
 ";
     let cmd = Command::new("prog")
         .arg(Arg::new("a").value_name("A"))
@@ -298,6 +299,47 @@ fn group_acts_like_arg() {
     assert!(result.is_ok(), "{}", result.unwrap_err());
     let m = result.unwrap();
     assert!(m.contains_id("mode"));
+    assert_eq!(m.get_one::<clap::Id>("mode").unwrap(), "debug");
+}
+
+#[test]
+fn conflict_with_overlapping_group_in_error() {
+    static ERR: &str = "\
+error: The argument '--major' cannot be used with '--minor'
+
+Usage: prog --major
+
+For more information try '--help'
+";
+
+    let cmd = Command::new("prog")
+        .group(ArgGroup::new("all").multiple(true))
+        .arg(arg!(--major).group("vers").group("all"))
+        .arg(arg!(--minor).group("vers").group("all"))
+        .arg(arg!(--other).group("all"));
+
+    utils::assert_output(cmd, "prog --major --minor", ERR, true);
+}
+
+#[test]
+fn requires_group_with_overlapping_group_in_error() {
+    static ERR: &str = "\
+error: The following required arguments were not provided:
+  <--in|--spec>
+
+Usage: prog --config <--in|--spec>
+
+For more information try '--help'
+";
+
+    let cmd = Command::new("prog")
+        .group(ArgGroup::new("all").multiple(true))
+        .group(ArgGroup::new("input").required(true))
+        .arg(arg!(--in).group("input").group("all"))
+        .arg(arg!(--spec).group("input").group("all"))
+        .arg(arg!(--config).requires("input").group("all"));
+
+    utils::assert_output(cmd, "prog --config", ERR, true);
 }
 
 /* This is used to be fixed in a hack, we need to find a better way to fix it.

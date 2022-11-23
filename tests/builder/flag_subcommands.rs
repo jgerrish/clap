@@ -496,16 +496,15 @@ fn flag_subcommand_long_infer_exact_match() {
     assert_eq!(m.subcommand_name(), Some("test"));
 }
 
-static FLAG_SUBCOMMAND_HELP: &str = "pacman-query 
+static FLAG_SUBCOMMAND_HELP: &str = "\
 Query the package database.
 
-USAGE:
-    pacman {query|--query|-Q} [OPTIONS]
+Usage: pacman {query|--query|-Q} [OPTIONS]
 
-OPTIONS:
-    -s, --search <search>...    search locally installed packages for matching strings
-    -i, --info <info>...        view package information
-    -h, --help                  Print help information
+Options:
+  -s, --search <search>...  search locally installed packages for matching strings
+  -i, --info <info>...      view package information
+  -h, --help                Print help information
 ";
 
 #[test]
@@ -545,16 +544,15 @@ fn flag_subcommand_long_short_normal_usage_string() {
     utils::assert_output(cmd, "pacman -Qh", FLAG_SUBCOMMAND_HELP, false);
 }
 
-static FLAG_SUBCOMMAND_NO_SHORT_HELP: &str = "pacman-query 
+static FLAG_SUBCOMMAND_NO_SHORT_HELP: &str = "\
 Query the package database.
 
-USAGE:
-    pacman {query|--query} [OPTIONS]
+Usage: pacman {query|--query} [OPTIONS]
 
-OPTIONS:
-    -s, --search <search>...    search locally installed packages for matching strings
-    -i, --info <info>...        view package information
-    -h, --help                  Print help information
+Options:
+  -s, --search <search>...  search locally installed packages for matching strings
+  -i, --info <info>...      view package information
+  -h, --help                Print help information
 ";
 
 #[test]
@@ -598,16 +596,15 @@ fn flag_subcommand_long_normal_usage_string() {
     );
 }
 
-static FLAG_SUBCOMMAND_NO_LONG_HELP: &str = "pacman-query 
+static FLAG_SUBCOMMAND_NO_LONG_HELP: &str = "\
 Query the package database.
 
-USAGE:
-    pacman {query|-Q} [OPTIONS]
+Usage: pacman {query|-Q} [OPTIONS]
 
-OPTIONS:
-    -s, --search <search>...    search locally installed packages for matching strings
-    -i, --info <info>...        view package information
-    -h, --help                  Print help information
+Options:
+  -s, --search <search>...  search locally installed packages for matching strings
+  -i, --info <info>...      view package information
+  -h, --help                Print help information
 ";
 
 #[test]

@@ -1,16 +1,36 @@
 use clap::{arg, error::ErrorKind, Arg, ArgAction, Command};
 
 #[test]
-#[should_panic = "Argument 'flag' cannot override itself"]
 fn flag_overrides_itself() {
-    Command::new("posix")
+    let res = Command::new("posix")
         .arg(
             arg!(--flag  "some flag"
             )
             .action(ArgAction::SetTrue)
             .overrides_with("flag"),
         )
-        .build();
+        .try_get_matches_from(vec!["", "--flag", "--flag"]);
+    assert!(res.is_ok(), "{}", res.unwrap_err());
+    let m = res.unwrap();
+    assert!(*m.get_one::<bool>("flag").expect("defaulted by clap"));
+}
+
+#[test]
+fn option_overrides_itself() {
+    let res = Command::new("posix")
+        .arg(
+            arg!(--opt <val> "some option")
+                .required(false)
+                .overrides_with("opt"),
+        )
+        .try_get_matches_from(vec!["", "--opt=some", "--opt=other"]);
+    assert!(res.is_ok(), "{}", res.unwrap_err());
+    let m = res.unwrap();
+    assert!(m.contains_id("opt"));
+    assert_eq!(
+        m.get_one::<String>("opt").map(|v| v.as_str()),
+        Some("other")
+    );
 }
 
 #[test]
@@ -76,12 +96,8 @@ fn posix_compatible_flags_short_rev() {
 #[test]
 fn posix_compatible_opts_long() {
     let m = Command::new("posix")
-        .arg(
-            arg!(--flag <flag> "some flag")
-                .required(false)
-                .overrides_with("color"),
-        )
-        .arg(arg!(--color <color> "some other flag").required(false))
+        .arg(arg!(--flag <flag> "some flag").overrides_with("color"))
+        .arg(arg!(--color <color> "some other flag"))
         .try_get_matches_from(vec!["", "--flag", "some", "--color", "other"])
         .unwrap();
     assert!(m.contains_id("color"));
@@ -95,12 +111,8 @@ fn posix_compatible_opts_long() {
 #[test]
 fn posix_compatible_opts_long_rev() {
     let m = Command::new("posix")
-        .arg(
-            arg!(--flag <flag> "some flag")
-                .required(false)
-                .overrides_with("color"),
-        )
-        .arg(arg!(--color <color> "some other flag").required(false))
+        .arg(arg!(--flag <flag> "some flag").overrides_with("color"))
+        .arg(arg!(--color <color> "some other flag"))
         .try_get_matches_from(vec!["", "--color", "some", "--flag", "other"])
         .unwrap();
     assert!(!m.contains_id("color"));
@@ -114,12 +126,8 @@ fn posix_compatible_opts_long_rev() {
 #[test]
 fn posix_compatible_opts_long_equals() {
     let m = Command::new("posix")
-        .arg(
-            arg!(--flag <flag> "some flag")
-                .required(false)
-                .overrides_with("color"),
-        )
-        .arg(arg!(--color <color> "some other flag").required(false))
+        .arg(arg!(--flag <flag> "some flag").overrides_with("color"))
+        .arg(arg!(--color <color> "some other flag"))
         .try_get_matches_from(vec!["", "--flag=some", "--color=other"])
         .unwrap();
     assert!(m.contains_id("color"));
@@ -133,12 +141,8 @@ fn posix_compatible_opts_long_equals() {
 #[test]
 fn posix_compatible_opts_long_equals_rev() {
     let m = Command::new("posix")
-        .arg(
-            arg!(--flag <flag> "some flag")
-                .required(false)
-                .overrides_with("color"),
-        )
-        .arg(arg!(--color <color> "some other flag").required(false))
+        .arg(arg!(--flag <flag> "some flag").overrides_with("color"))
+        .arg(arg!(--color <color> "some other flag"))
         .try_get_matches_from(vec!["", "--color=some", "--flag=other"])
         .unwrap();
     assert!(!m.contains_id("color"));
@@ -152,12 +156,8 @@ fn posix_compatible_opts_long_equals_rev() {
 #[test]
 fn posix_compatible_opts_short() {
     let m = Command::new("posix")
-        .arg(
-            arg!(f: -f <flag>  "some flag")
-                .required(false)
-                .overrides_with("c"),
-        )
-        .arg(arg!(c: -c <color> "some other flag").required(false))
+        .arg(arg!(f: -f <flag>  "some flag").overrides_with("c"))
+        .arg(arg!(c: -c <color> "some other flag"))
         .try_get_matches_from(vec!["", "-f", "some", "-c", "other"])
         .unwrap();
     assert!(m.contains_id("c"));
@@ -171,12 +171,8 @@ fn posix_compatible_opts_short() {
 #[test]
 fn posix_compatible_opts_short_rev() {
     let m = Command::new("posix")
-        .arg(
-            arg!(f: -f <flag>  "some flag")
-                .required(false)
-                .overrides_with("c"),
-        )
-        .arg(arg!(c: -c <color> "some other flag").required(false))
+        .arg(arg!(f: -f <flag>  "some flag").overrides_with("c"))
+        .arg(arg!(c: -c <color> "some other flag"))
         .try_get_matches_from(vec!["", "-c", "some", "-f", "other"])
         .unwrap();
     assert!(!m.contains_id("c"));
@@ -323,7 +319,7 @@ fn require_overridden_4() {
 #[test]
 fn incremental_override() {
     let mut cmd = Command::new("test")
-        .arg(arg!(--name <NAME>).action(ArgAction::Append))
+        .arg(arg!(--name <NAME> ...).required(true))
         .arg(
             arg!(--"no-name")
                 .overrides_with("name")

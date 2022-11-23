@@ -8,7 +8,7 @@ pub mod bash {
     use unicode_xid::UnicodeXID;
 
     #[derive(clap::Subcommand)]
-    #[clap(hide = true)]
+    #[command(hide = true)]
     #[allow(missing_docs)]
     #[derive(Clone, Debug)]
     pub enum CompleteCommand {
@@ -17,15 +17,15 @@ pub mod bash {
     }
 
     #[derive(clap::Args)]
-    #[clap(group = clap::ArgGroup::new("complete").multiple(true).conflicts_with("register"))]
+    #[command(group = clap::ArgGroup::new("complete").multiple(true).conflicts_with("register"))]
     #[allow(missing_docs)]
     #[derive(Clone, Debug)]
     pub struct CompleteArgs {
         /// Path to write completion-registration to
-        #[clap(long, required = true)]
+        #[arg(long, required = true)]
         register: Option<std::path::PathBuf>,
 
-        #[clap(
+        #[arg(
             long,
             required = true,
             value_name = "COMP_CWORD",
@@ -34,10 +34,10 @@ pub mod bash {
         )]
         index: Option<usize>,
 
-        #[clap(long, hide_short_help = true, group = "complete")]
+        #[arg(long, hide_short_help = true, group = "complete")]
         ifs: Option<String>,
 
-        #[clap(
+        #[arg(
             long = "type",
             required = true,
             hide_short_help = true,
@@ -45,10 +45,10 @@ pub mod bash {
         )]
         comp_type: Option<CompType>,
 
-        #[clap(long, hide_short_help = true, group = "complete")]
+        #[arg(long, hide_short_help = true, group = "complete")]
         space: bool,
 
-        #[clap(
+        #[arg(
             long,
             conflicts_with = "space",
             hide_short_help = true,
@@ -56,7 +56,7 @@ pub mod bash {
         )]
         no_space: bool,
 
-        #[clap(raw = true, hide_short_help = true, group = "complete")]
+        #[arg(raw = true, hide_short_help = true, group = "complete")]
         comp_words: Vec<OsString>,
     }
 
@@ -74,17 +74,15 @@ pub mod bash {
             if let Some(out_path) = args.register.as_deref() {
                 let mut buf = Vec::new();
                 let name = cmd.get_name();
-                let bin = cmd.get_bin_name().unwrap_or(cmd.get_name());
+                let bin = cmd.get_bin_name().unwrap_or_else(|| cmd.get_name());
                 register(name, [bin], bin, &Behavior::default(), &mut buf)?;
                 if out_path == std::path::Path::new("-") {
-                    std::io::stdout().write(&buf)?;
+                    std::io::stdout().write_all(&buf)?;
+                } else if out_path.is_dir() {
+                    let out_path = out_path.join(file_name(name));
+                    std::fs::write(out_path, buf)?;
                 } else {
-                    if out_path.is_dir() {
-                        let out_path = out_path.join(file_name(name));
-                        std::fs::write(out_path, buf)?;
-                    } else {
-                        std::fs::write(out_path, buf)?;
-                    }
+                    std::fs::write(out_path, buf)?;
                 }
             } else {
                 let index = args.index.unwrap_or_default();
@@ -115,7 +113,7 @@ pub mod bash {
                     }
                     write!(&mut buf, "{}", completion.to_string_lossy())?;
                 }
-                std::io::stdout().write(&buf)?;
+                std::io::stdout().write_all(&buf)?;
             }
 
             Ok(())
@@ -151,7 +149,7 @@ pub mod bash {
         behavior: &Behavior,
         buf: &mut dyn Write,
     ) -> Result<(), std::io::Error> {
-        let escaped_name = name.replace("-", "_");
+        let escaped_name = name.replace('-', "_");
         debug_assert!(
             escaped_name.chars().all(|c| c.is_xid_continue()),
             "`name` must be an identifier, got `{}`",
@@ -231,7 +229,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
                 Self::Menu,
             ]
         }
-        fn to_possible_value<'a>(&self) -> ::std::option::Option<clap::builder::PossibleValue<'a>> {
+        fn to_possible_value(&self) -> ::std::option::Option<clap::builder::PossibleValue> {
             match self {
                 Self::Normal => {
                     let value = "9";
@@ -431,7 +429,7 @@ complete OPTIONS -F _clap_complete_NAME EXECUTABLES
 
     fn complete_arg_value(
         value: Result<&str, &clap_lex::RawOsStr>,
-        arg: &clap::Arg<'_>,
+        arg: &clap::Arg,
         current_dir: Option<&std::path::Path>,
     ) -> Vec<OsString> {
         let mut values = Vec::new();

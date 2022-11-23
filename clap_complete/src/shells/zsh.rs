@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use clap::builder::PossibleValue;
 use clap::*;
 
 use crate::generator::{utils, Generator};
@@ -154,12 +153,10 @@ fn subcommands_of(p: &Command) -> String {
         let text = format!(
             "'{name}:{help}' \\",
             name = name,
-            help = escape_help(subcommand.get_about().unwrap_or(""))
+            help = escape_help(&subcommand.get_about().unwrap_or_default().to_string())
         );
 
-        if !text.is_empty() {
-            ret.push(text);
-        }
+        ret.push(text);
     }
 
     // The subcommands
@@ -281,13 +278,10 @@ esac",
 //
 // Given the bin_name "a b c" and the Command for "a" this returns the "c" Command.
 // Given the bin_name "a b c" and the Command for "b" this returns the "c" Command.
-fn parser_of<'help, 'cmd>(
-    parent: &'cmd Command<'help>,
-    bin_name: &str,
-) -> Option<&'cmd Command<'help>> {
+fn parser_of<'cmd>(parent: &'cmd Command, bin_name: &str) -> Option<&'cmd Command> {
     debug!("parser_of: p={}, bin_name={}", parent.get_name(), bin_name);
 
-    if bin_name == parent.get_bin_name().unwrap_or("") {
+    if bin_name == parent.get_bin_name().unwrap_or_default() {
         return Some(parent);
     }
 
@@ -376,7 +370,8 @@ fn value_completion(arg: &Arg) -> Option<String> {
                             Some(format!(
                                 r#"{name}\:"{tooltip}""#,
                                 name = escape_value(value.get_name()),
-                                tooltip = value.get_help().map(escape_help).unwrap_or_default()
+                                tooltip =
+                                    escape_help(&value.get_help().unwrap_or_default().to_string()),
                             ))
                         }
                     })
@@ -389,7 +384,7 @@ fn value_completion(arg: &Arg) -> Option<String> {
                 values
                     .iter()
                     .filter(|pv| !pv.is_hide_set())
-                    .map(PossibleValue::get_name)
+                    .map(|n| n.get_name())
                     .collect::<Vec<_>>()
                     .join(" ")
             ))
@@ -449,10 +444,14 @@ fn write_opts_of(p: &Command, p_global: Option<&Command>) -> String {
     for o in p.get_opts() {
         debug!("write_opts_of:iter: o={}", o.get_id());
 
-        let help = o.get_help().map_or(String::new(), escape_help);
+        let help = escape_help(&o.get_help().unwrap_or_default().to_string());
         let conflicts = arg_conflicts(p, o, p_global);
 
-        let multiple = "*";
+        let multiple = if let ArgAction::Count | ArgAction::Append = o.get_action() {
+            "*"
+        } else {
+            ""
+        };
 
         let vn = match o.get_value_names() {
             None => " ".to_string(),
@@ -545,10 +544,14 @@ fn write_flags_of(p: &Command, p_global: Option<&Command>) -> String {
     for f in utils::flags(p) {
         debug!("write_flags_of:iter: f={}", f.get_id());
 
-        let help = f.get_help().map_or(String::new(), escape_help);
+        let help = escape_help(&f.get_help().unwrap_or_default().to_string());
         let conflicts = arg_conflicts(p, &f, p_global);
 
-        let multiple = "*";
+        let multiple = if let ArgAction::Count | ArgAction::Append = f.get_action() {
+            "*"
+        } else {
+            ""
+        };
 
         if let Some(short) = f.get_short() {
             let s = format!(
@@ -623,14 +626,13 @@ fn write_positionals_of(p: &Command) -> String {
         debug!("write_positionals_of:iter: arg={}", arg.get_id());
 
         let num_args = arg.get_num_args().expect("built");
-        let cardinality =
-            if num_args != builder::ValueRange::EMPTY && num_args != builder::ValueRange::SINGLE {
-                "*:"
-            } else if !arg.is_required_set() {
-                ":"
-            } else {
-                ""
-            };
+        let cardinality = if num_args.max_values() > 1 {
+            "*:"
+        } else if !arg.is_required_set() {
+            ":"
+        } else {
+            ""
+        };
 
         let a = format!(
             "'{cardinality}:{name}{help}:{value_completion}' \\",
@@ -638,7 +640,8 @@ fn write_positionals_of(p: &Command) -> String {
             name = arg.get_id(),
             help = arg
                 .get_help()
-                .map_or("".to_owned(), |v| " -- ".to_owned() + v)
+                .map(|s| s.to_string())
+                .map_or("".to_owned(), |v| " -- ".to_owned() + &v)
                 .replace('[', "\\[")
                 .replace(']', "\\]")
                 .replace('\'', "'\\''")

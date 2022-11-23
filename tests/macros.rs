@@ -4,8 +4,8 @@ mod arg {
         let arg = clap::arg!(foo: --bar <NUM>);
         assert_eq!(arg.get_id(), "foo");
         assert_eq!(arg.get_long(), Some("bar"));
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
-        assert!(arg.is_required_set());
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
+        assert!(!arg.is_required_set());
     }
 
     #[test]
@@ -13,8 +13,8 @@ mod arg {
         let arg = clap::arg!(--bar <NUM>);
         assert_eq!(arg.get_id(), "bar");
         assert_eq!(arg.get_long(), Some("bar"));
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
-        assert!(arg.is_required_set());
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
+        assert!(!arg.is_required_set());
     }
 
     #[test]
@@ -22,7 +22,7 @@ mod arg {
         let arg = clap::arg!(<NUM>);
         assert_eq!(arg.get_id(), "NUM");
         assert_eq!(arg.get_long(), None);
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(arg.is_required_set());
     }
 
@@ -46,7 +46,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -'b');
         assert_eq!(arg.get_id(), "foo");
@@ -54,7 +54,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b ...);
         assert_eq!(arg.get_id(), "foo");
@@ -62,7 +62,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::Count));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b "How to use it");
         assert_eq!(arg.get_id(), "foo");
@@ -70,7 +70,10 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), Some("How to use it"));
+        assert_eq!(
+            arg.get_help().map(|s| s.to_string()),
+            Some("How to use it".to_owned())
+        );
     }
 
     #[test]
@@ -82,7 +85,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -'b' --hello);
         assert_eq!(arg.get_id(), "foo");
@@ -91,7 +94,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b --hello ...);
         assert_eq!(arg.get_id(), "foo");
@@ -100,7 +103,7 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::Count));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b --hello "How to use it");
         assert_eq!(arg.get_id(), "foo");
@@ -109,7 +112,10 @@ mod arg {
         assert!(matches!(arg.get_action(), clap::ArgAction::SetTrue));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), Some("How to use it"));
+        assert_eq!(
+            arg.get_help().map(|s| s.to_string()),
+            Some("How to use it".to_owned())
+        );
     }
 
     #[test]
@@ -185,86 +191,93 @@ mod arg {
         assert_eq!(arg.get_short(), Some('b'));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
-        assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert!(!arg.is_required_set());
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -'b' <NUM>);
         assert_eq!(arg.get_id(), "foo");
         assert_eq!(arg.get_short(), Some('b'));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
-        assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert!(!arg.is_required_set());
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b  <NUM> ...);
         assert_eq!(arg.get_id(), "foo");
         assert_eq!(arg.get_short(), Some('b'));
         assert!(matches!(arg.get_action(), clap::ArgAction::Append));
         assert_eq!(arg.get_num_args(), None);
-        assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert!(!arg.is_required_set());
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: -b  <NUM> "How to use it");
         assert_eq!(arg.get_id(), "foo");
         assert_eq!(arg.get_short(), Some('b'));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
-        assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), Some("How to use it"));
+        assert!(!arg.is_required_set());
+        assert_eq!(
+            arg.get_help().map(|s| s.to_string()),
+            Some("How to use it".to_owned())
+        );
     }
 
     #[test]
     fn positional() {
         let arg = clap::arg!(<NUM>);
         assert_eq!(arg.get_id(), "NUM");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
         assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!([NUM]);
         assert_eq!(arg.get_id(), "NUM");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
         assert!(!arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(<NUM>);
         assert_eq!(arg.get_id(), "NUM");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
         assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(foo: <NUM>);
         assert_eq!(arg.get_id(), "foo");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
         assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(<NUM> ...);
         assert_eq!(arg.get_id(), "NUM");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Append));
         assert_eq!(arg.get_num_args(), Some((1..).into()));
         assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), None);
+        assert_eq!(arg.get_help().map(|s| s.to_string()), None);
 
         let arg = clap::arg!(<NUM> "How to use it");
         assert_eq!(arg.get_id(), "NUM");
-        assert_eq!(arg.get_value_names(), Some(vec!["NUM"].as_slice()));
+        assert_eq!(arg.get_value_names(), Some(vec!["NUM".into()].as_slice()));
         assert!(matches!(arg.get_action(), clap::ArgAction::Set));
         assert_eq!(arg.get_num_args(), None);
         assert!(arg.is_required_set());
-        assert_eq!(arg.get_help(), Some("How to use it"));
+        assert_eq!(
+            arg.get_help().map(|s| s.to_string()),
+            Some("How to use it".to_owned())
+        );
     }
 
     #[test]
+    #[cfg(all(feature = "help", featiure = "usage"))]
     fn optional_value() {
         let mut cmd = clap::Command::new("test").arg(clap::arg!(port: -p [NUM]));
 
@@ -289,14 +302,11 @@ mod arg {
         let mut help = Vec::new();
         cmd.write_help(&mut help).unwrap();
         const HELP: &str = "\
-test 
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-    -p [<NUM>]        
-    -h, --help        Print help information
+Options:
+  -p [<NUM>]      
+  -h, --help      Print help information
 ";
         snapbox::assert_eq(HELP, help);
     }

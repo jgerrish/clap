@@ -31,6 +31,7 @@ pub(crate) enum AppSettings {
     IgnoreErrors,
     AllowHyphenValues,
     AllowNegativeNumbers,
+    AllArgsOverrideSelf,
     AllowMissingPositional,
     TrailingVarArg,
     DontDelimitTrailingValues,
@@ -43,7 +44,6 @@ pub(crate) enum AppSettings {
     ArgsNegateSubcommands,
     SubcommandPrecedenceOverArg,
     ArgRequiredElseHelp,
-    DontCollapseArgsInUsage,
     NextLineHelp,
     DisableColoredHelp,
     DisableHelpFlag,
@@ -85,7 +85,6 @@ bitflags! {
         const DONT_DELIM_TRAIL               = 1 << 24;
         const ALLOW_NEG_NUMS                 = 1 << 25;
         const DISABLE_HELP_SC                = 1 << 27;
-        const DONT_COLLAPSE_ARGS             = 1 << 28;
         const ARGS_NEGATE_SCS                = 1 << 29;
         const PROPAGATE_VALS_DOWN            = 1 << 30;
         const ALLOW_MISSING_POS              = 1 << 31;
@@ -95,12 +94,14 @@ bitflags! {
         const VALID_ARG_FOUND                = 1 << 35;
         const INFER_SUBCOMMANDS              = 1 << 36;
         const CONTAINS_LAST                  = 1 << 37;
+        const ARGS_OVERRIDE_SELF             = 1 << 38;
         const HELP_REQUIRED                  = 1 << 39;
         const SUBCOMMAND_PRECEDENCE_OVER_ARG = 1 << 40;
         const DISABLE_HELP_FLAG              = 1 << 41;
         const INFER_LONG_ARGS                = 1 << 43;
         const IGNORE_ERRORS                  = 1 << 44;
         const MULTICALL                      = 1 << 45;
+        const EXPAND_HELP_SUBCOMMAND_TREES   = 1 << 46;
         const NO_OP                          = 0;
     }
 }
@@ -128,8 +129,6 @@ impl_settings! { AppSettings, AppFlags,
         => Flags::COLOR_NEVER,
     DontDelimitTrailingValues
         => Flags::DONT_DELIM_TRAIL,
-    DontCollapseArgsInUsage
-        => Flags::DONT_COLLAPSE_ARGS,
     DisableColoredHelp
         => Flags::DISABLE_COLORED_HELP,
     DisableHelpSubcommand
@@ -166,6 +165,8 @@ impl_settings! { AppSettings, AppFlags,
         => Flags::BIN_NAME_BUILT,
     InferSubcommands
         => Flags::INFER_SUBCOMMANDS,
+    AllArgsOverrideSelf
+        => Flags::ARGS_OVERRIDE_SELF,
     InferLongArgs
         => Flags::INFER_LONG_ARGS
 }

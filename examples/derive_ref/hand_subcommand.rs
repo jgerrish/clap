@@ -7,7 +7,7 @@ struct AddArgs {
 }
 #[derive(Parser, Debug)]
 struct RemoveArgs {
-    #[clap(short, long)]
+    #[arg(short, long)]
     force: bool,
     name: Vec<String>,
 }
@@ -50,12 +50,12 @@ impl FromArgMatches for CliSub {
 }
 
 impl Subcommand for CliSub {
-    fn augment_subcommands(cmd: Command<'_>) -> Command<'_> {
+    fn augment_subcommands(cmd: Command) -> Command {
         cmd.subcommand(AddArgs::augment_args(Command::new("add")))
             .subcommand(RemoveArgs::augment_args(Command::new("remove")))
             .subcommand_required(true)
     }
-    fn augment_subcommands_for_update(cmd: Command<'_>) -> Command<'_> {
+    fn augment_subcommands_for_update(cmd: Command) -> Command {
         cmd.subcommand(AddArgs::augment_args(Command::new("add")))
             .subcommand(RemoveArgs::augment_args(Command::new("remove")))
             .subcommand_required(true)
@@ -67,7 +67,7 @@ impl Subcommand for CliSub {
 
 #[derive(Parser, Debug)]
 struct Cli {
-    #[clap(short, long)]
+    #[arg(short, long)]
     top_level: bool,
     #[clap(subcommand)]
     subcommand: CliSub,

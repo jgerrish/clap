@@ -15,8 +15,8 @@ impl FromArgMatches for CliArgs {
     }
     fn from_arg_matches_mut(matches: &mut ArgMatches) -> Result<Self, Error> {
         Ok(Self {
-            foo: *matches.get_one::<bool>("foo").expect("defaulted by clap"),
-            bar: *matches.get_one::<bool>("bar").expect("defaulted by clap"),
+            foo: matches.get_flag("foo"),
+            bar: matches.get_flag("bar"),
             quuz: matches.remove_one::<String>("quuz"),
         })
     }
@@ -25,8 +25,8 @@ impl FromArgMatches for CliArgs {
         self.update_from_arg_matches_mut(&mut matches)
     }
     fn update_from_arg_matches_mut(&mut self, matches: &mut ArgMatches) -> Result<(), Error> {
-        self.foo |= *matches.get_one::<bool>("foo").expect("defaulted by clap");
-        self.bar |= *matches.get_one::<bool>("bar").expect("defaulted by clap");
+        self.foo |= matches.get_flag("foo");
+        self.bar |= matches.get_flag("bar");
         if let Some(quuz) = matches.remove_one::<String>("quuz") {
             self.quuz = Some(quuz);
         }
@@ -35,7 +35,7 @@ impl FromArgMatches for CliArgs {
 }
 
 impl Args for CliArgs {
-    fn augment_args(cmd: Command<'_>) -> Command<'_> {
+    fn augment_args(cmd: Command) -> Command {
         cmd.arg(
             Arg::new("foo")
                 .short('f')
@@ -55,7 +55,7 @@ impl Args for CliArgs {
                 .action(ArgAction::Set),
         )
     }
-    fn augment_args_for_update(cmd: Command<'_>) -> Command<'_> {
+    fn augment_args_for_update(cmd: Command) -> Command {
         cmd.arg(
             Arg::new("foo")
                 .short('f')
@@ -79,9 +79,9 @@ impl Args for CliArgs {
 
 #[derive(Parser, Debug)]
 struct Cli {
-    #[clap(short, long)]
+    #[arg(short, long)]
     top_level: bool,
-    #[clap(flatten)]
+    #[command(flatten)]
     more_args: CliArgs,
 }
 

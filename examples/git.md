@@ -4,51 +4,47 @@ Help:
 ```console
 $ git
 ? failed
-git 
 A fictional versioning CLI
 
-USAGE:
-    git[EXE] <SUBCOMMAND>
+Usage: git[EXE] <COMMAND>
 
-OPTIONS:
-    -h, --help    Print help information
+Commands:
+  clone  Clones repos
+  diff   Compare two commits
+  push   pushes things
+  add    adds things
+  stash  
+  help   Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    clone    Clones repos
-    push     pushes things
-    add      adds things
-    stash    
-    help     Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help  Print help information
 
 $ git help
-git 
 A fictional versioning CLI
 
-USAGE:
-    git[EXE] <SUBCOMMAND>
+Usage: git[EXE] <COMMAND>
 
-OPTIONS:
-    -h, --help    Print help information
+Commands:
+  clone  Clones repos
+  diff   Compare two commits
+  push   pushes things
+  add    adds things
+  stash  
+  help   Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    clone    Clones repos
-    push     pushes things
-    add      adds things
-    stash    
-    help     Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help  Print help information
 
 $ git help add
-git-add 
 adds things
 
-USAGE:
-    git[EXE] add <PATH>...
+Usage: git[EXE] add <PATH>...
 
-ARGS:
-    <PATH>...    Stuff to add
+Arguments:
+  <PATH>...  Stuff to add
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help information
 
 ```
 
@@ -56,17 +52,15 @@ A basic argument:
 ```console
 $ git add
 ? failed
-git-add 
 adds things
 
-USAGE:
-    git[EXE] add <PATH>...
+Usage: git[EXE] add <PATH>...
 
-ARGS:
-    <PATH>...    Stuff to add
+Arguments:
+  <PATH>...  Stuff to add
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help information
 
 $ git add Cargo.toml Cargo.lock
 Adding ["Cargo.toml", "Cargo.lock"]
@@ -76,43 +70,34 @@ Adding ["Cargo.toml", "Cargo.lock"]
 Default subcommand:
 ```console
 $ git stash -h
-git-stash 
+Usage: git[EXE] stash [OPTIONS]
+       git[EXE] stash <COMMAND>
 
-USAGE:
-    git[EXE] stash [OPTIONS]
-    git[EXE] stash <SUBCOMMAND>
+Commands:
+  push   
+  pop    
+  apply  
+  help   Print this message or the help of the given subcommand(s)
 
-OPTIONS:
-    -m, --message <MESSAGE>    
-    -h, --help                 Print help information
-
-SUBCOMMANDS:
-    push     
-    pop      
-    apply    
-    help     Print this message or the help of the given subcommand(s)
+Options:
+  -m, --message <MESSAGE>  
+  -h, --help               Print help information
 
 $ git stash push -h
-git-stash-push 
+Usage: git[EXE] stash push [OPTIONS]
 
-USAGE:
-    git[EXE] stash push [OPTIONS]
-
-OPTIONS:
-    -m, --message <MESSAGE>    
-    -h, --help                 Print help information
+Options:
+  -m, --message <MESSAGE>  
+  -h, --help               Print help information
 
 $ git stash pop -h
-git-stash-pop 
+Usage: git[EXE] stash pop [STASH]
 
-USAGE:
-    git[EXE] stash pop [STASH]
+Arguments:
+  [STASH]  
 
-ARGS:
-    <STASH>    
-
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help information
 
 $ git stash -m "Prototype"
 Pushing Some("Prototype")
@@ -132,5 +117,41 @@ External subcommands:
 ```console
 $ git custom-tool arg1 --foo bar
 Calling out to "custom-tool" with ["arg1", "--foo", "bar"]
+
+```
+
+Last argument:
+```console
+$ git diff --help
+Compare two commits
+
+Usage: git[EXE] diff [OPTIONS] [COMMIT] [COMMIT] [-- <PATH>]
+
+Arguments:
+  [COMMIT]  
+  [COMMIT]  
+  [PATH]    
+
+Options:
+      --color[=<WHEN>]  [default: auto] [possible values: always, auto, never]
+  -h, --help            Print help information
+
+$ git diff
+Diffing stage..worktree  (color=auto)
+
+$ git diff ./src
+Diffing stage..worktree ./src (color=auto)
+
+$ git diff HEAD ./src
+Diffing HEAD..worktree ./src (color=auto)
+
+$ git diff HEAD~~ -- HEAD
+Diffing HEAD~~..worktree HEAD (color=auto)
+
+$ git diff --color
+Diffing stage..worktree  (color=always)
+
+$ git diff --color=never
+Diffing stage..worktree  (color=never)
 
 ```

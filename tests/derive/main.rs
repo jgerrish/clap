@@ -1,4 +1,6 @@
 #![cfg(feature = "derive")]
+#![cfg(feature = "help")]
+#![cfg(feature = "usage")]
 
 mod app_name;
 mod arguments;
@@ -13,6 +15,7 @@ mod explicit_name_no_renaming;
 mod flags;
 mod flatten;
 mod generic;
+mod groups;
 mod help;
 mod issues;
 mod macros;

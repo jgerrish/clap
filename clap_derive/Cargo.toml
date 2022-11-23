@@ -1,6 +1,6 @@
 [package]
 name = "clap_derive"
-version = "4.0.0-alpha.0"
+version = "4.0.21"
 description = "Parse command line argument by defining a struct, derive crate."
 repository = "https://github.com/clap-rs/clap/tree/master/clap_derive"
 categories = ["command-line-interface", "development-tools::procedural-macro-helpers"]
@@ -31,9 +31,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 shared-version = true
 dependent-version = "upgrade"
 tag-name = "v{{version}}"
-pre-release-replacements = [
-  {file="README.md", search="github.com/clap-rs/clap/blob/[^/]+/", replace="github.com/clap-rs/clap/blob/{{tag_name}}/", exactly=2, prerelease = true},
-]
 
 [lib]
 proc-macro = true

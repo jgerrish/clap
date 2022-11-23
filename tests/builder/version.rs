@@ -1,23 +1,29 @@
 use clap::{error::ErrorKind, ArgAction, Command};
 
-fn common() -> Command<'static> {
-    Command::new("foo")
+use crate::utils;
+
+fn common() -> Command {
+    Command::new("foo").help_template(utils::FULL_TEMPLATE)
 }
 
-fn with_version() -> Command<'static> {
+fn with_version() -> Command {
     common().version("3.0")
 }
 
-fn with_long_version() -> Command<'static> {
+fn with_long_version() -> Command {
     common().long_version("3.0 (abcdefg)")
 }
 
-fn with_subcommand() -> Command<'static> {
+fn with_both() -> Command {
+    common().version("3.0").long_version("3.0 (abcdefg)")
+}
+
+fn with_subcommand() -> Command {
     with_version().subcommand(Command::new("bar").subcommand(Command::new("baz")))
 }
 
 #[test]
-fn no_version_flag_short() {
+fn version_short_flag_no_version() {
     let res = common().try_get_matches_from("foo -V".split(' '));
 
     assert!(res.is_err());
@@ -26,7 +32,7 @@ fn no_version_flag_short() {
 }
 
 #[test]
-fn no_version_flag_long() {
+fn version_long_flag_no_version() {
     let res = common().try_get_matches_from("foo --version".split(' '));
 
     assert!(res.is_err());
@@ -35,7 +41,7 @@ fn no_version_flag_long() {
 }
 
 #[test]
-fn version_flag_from_version_short() {
+fn version_short_flag_with_version() {
     let res = with_version().try_get_matches_from("foo -V".split(' '));
 
     assert!(res.is_err());
@@ -45,7 +51,7 @@ fn version_flag_from_version_short() {
 }
 
 #[test]
-fn version_flag_from_version_long() {
+fn version_long_flag_with_version() {
     let res = with_version().try_get_matches_from("foo --version".split(' '));
 
     assert!(res.is_err());
@@ -55,7 +61,7 @@ fn version_flag_from_version_long() {
 }
 
 #[test]
-fn version_flag_from_long_version_short() {
+fn version_short_flag_with_long_version() {
     let res = with_long_version().try_get_matches_from("foo -V".split(' '));
 
     assert!(res.is_err());
@@ -65,13 +71,151 @@ fn version_flag_from_long_version_short() {
 }
 
 #[test]
-fn version_flag_from_long_version_long() {
+fn version_long_flag_with_long_version() {
     let res = with_long_version().try_get_matches_from("foo --version".split(' '));
 
     assert!(res.is_err());
     let err = res.unwrap_err();
     assert_eq!(err.kind(), ErrorKind::DisplayVersion);
     assert_eq!(err.to_string(), "foo 3.0 (abcdefg)\n");
+}
+
+#[test]
+fn version_short_flag_with_both() {
+    let res = with_both().try_get_matches_from("foo -V".split(' '));
+
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    assert_eq!(err.kind(), ErrorKind::DisplayVersion);
+    assert_eq!(err.to_string(), "foo 3.0\n");
+}
+
+#[test]
+fn version_long_flag_with_both() {
+    let res = with_both().try_get_matches_from("foo --version".split(' '));
+
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    assert_eq!(err.kind(), ErrorKind::DisplayVersion);
+    assert_eq!(err.to_string(), "foo 3.0 (abcdefg)\n");
+}
+
+#[test]
+fn help_short_flag_no_version() {
+    static EXPECTED: &str = "\
+foo 
+
+Usage: foo
+
+Options:
+  -h, --help  Print help information
+";
+    let cmd = common();
+    utils::assert_output(cmd, "foo -h", EXPECTED, false);
+}
+
+#[test]
+fn help_long_flag_no_version() {
+    static EXPECTED: &str = "\
+foo 
+
+Usage: foo
+
+Options:
+  -h, --help  Print help information
+";
+    let cmd = common();
+    utils::assert_output(cmd, "foo --help", EXPECTED, false);
+}
+
+#[test]
+fn help_short_flag_with_version() {
+    static EXPECTED: &str = "\
+foo 3.0
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_version();
+    utils::assert_output(cmd, "foo -h", EXPECTED, false);
+}
+
+#[test]
+fn help_long_flag_with_version() {
+    static EXPECTED: &str = "\
+foo 3.0
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_version();
+    utils::assert_output(cmd, "foo --help", EXPECTED, false);
+}
+
+#[test]
+fn help_short_flag_with_long_version() {
+    static EXPECTED: &str = "\
+foo 3.0 (abcdefg)
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_long_version();
+    utils::assert_output(cmd, "foo -h", EXPECTED, false);
+}
+
+#[test]
+fn help_long_flag_with_long_version() {
+    static EXPECTED: &str = "\
+foo 3.0 (abcdefg)
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_long_version();
+    utils::assert_output(cmd, "foo --help", EXPECTED, false);
+}
+
+#[test]
+fn help_short_flag_with_both() {
+    static EXPECTED: &str = "\
+foo 3.0
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_both();
+    utils::assert_output(cmd, "foo -h", EXPECTED, false);
+}
+
+#[test]
+fn help_long_flag_with_both() {
+    static EXPECTED: &str = "\
+foo 3.0
+
+Usage: foo
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+";
+    let cmd = with_both();
+    utils::assert_output(cmd, "foo --help", EXPECTED, false);
 }
 
 #[test]
@@ -147,13 +291,9 @@ fn version_required() {
 }
 
 #[test]
+#[should_panic = "Argument `version` is undefined"]
 fn mut_arg_version_no_auto_version() {
-    let res = common()
-        .mut_arg("version", |v| v.short('z').action(ArgAction::SetTrue))
-        .try_get_matches_from("foo -z".split(' '));
-
-    assert!(res.is_ok(), "{}", res.unwrap_err());
-    assert_eq!(res.unwrap().get_one::<bool>("version").copied(), Some(true));
+    let _ = common().mut_arg("version", |v| v.short('z').action(ArgAction::SetTrue));
 }
 
 #[cfg(debug_assertions)]

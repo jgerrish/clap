@@ -1,7 +1,7 @@
 // Internal
+use crate::builder::StyledStr;
 use crate::builder::{Arg, ArgPredicate, Command, PossibleValue};
 use crate::error::{Error, Result as ClapResult};
-use crate::output::fmt::Stream;
 use crate::output::Usage;
 use crate::parser::{ArgMatcher, ParseState};
 use crate::util::ChildGraph;
@@ -10,13 +10,13 @@ use crate::util::FlatSet;
 use crate::util::Id;
 use crate::INTERNAL_ERROR_MSG;
 
-pub(crate) struct Validator<'help, 'cmd> {
-    cmd: &'cmd Command<'help>,
+pub(crate) struct Validator<'cmd> {
+    cmd: &'cmd Command,
     required: ChildGraph<Id>,
 }
 
-impl<'help, 'cmd> Validator<'help, 'cmd> {
-    pub(crate) fn new(cmd: &'cmd Command<'help>) -> Self {
+impl<'cmd> Validator<'cmd> {
+    pub(crate) fn new(cmd: &'cmd Command) -> Self {
         let required = cmd.required_graph();
         Validator { cmd, required }
     }
@@ -34,7 +34,7 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             debug!("Validator::validate: needs_val_of={:?}", a);
 
             let o = &self.cmd[&a];
-            let should_err = if let Some(v) = matcher.args.get(&o.id) {
+            let should_err = if let Some(v) = matcher.args.get(o.get_id()) {
                 v.all_val_groups_empty() && o.get_min_vals() != 0
             } else {
                 true
@@ -45,7 +45,7 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
                     &get_possible_values_cli(o)
                         .iter()
                         .filter(|pv| !pv.is_hide_set())
-                        .map(PossibleValue::get_name)
+                        .map(|n| n.get_name().to_owned())
                         .collect::<Vec<_>>(),
                     o.to_string(),
                 ));
@@ -58,7 +58,7 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
                 .filter(|arg_id| matcher.check_explicit(arg_id, &ArgPredicate::IsPresent))
                 .count();
             if num_user_values == 0 {
-                let message = self.cmd.write_help_err(false, Stream::Stderr)?;
+                let message = self.cmd.write_help_err(false);
                 return Err(Error::display_help_error(self.cmd, message));
             }
         }
@@ -70,15 +70,19 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             return Err(Error::missing_subcommand(
                 self.cmd,
                 bn.to_string(),
+                self.cmd
+                    .all_subcommand_names()
+                    .map(|s| s.to_owned())
+                    .collect::<Vec<_>>(),
                 Usage::new(self.cmd)
                     .required(&self.required)
                     .create_usage_with_title(&[]),
             ));
         }
 
-        self.validate_conflicts(matcher, &mut conflicts)?;
+        ok!(self.validate_conflicts(matcher, &mut conflicts));
         if !(self.cmd.is_subcommand_negates_reqs_set() && has_subcmd) {
-            self.validate_required(matcher, &mut conflicts)?;
+            ok!(self.validate_required(matcher, &mut conflicts));
         }
 
         Ok(())
@@ -91,7 +95,7 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
     ) -> ClapResult<()> {
         debug!("Validator::validate_conflicts");
 
-        self.validate_exclusive(matcher)?;
+        ok!(self.validate_exclusive(matcher));
 
         for arg_id in matcher
             .arg_ids()
@@ -100,7 +104,7 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
         {
             debug!("Validator::validate_conflicts::iter: id={:?}", arg_id);
             let conflicts = conflicts.gather_conflicts(self.cmd, matcher, arg_id);
-            self.build_conflict_err(arg_id, &conflicts, matcher)?;
+            ok!(self.build_conflict_err(arg_id, &conflicts, matcher));
         }
 
         Ok(())
@@ -112,6 +116,9 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             .arg_ids()
             .filter(|arg_id| {
                 matcher.check_explicit(arg_id, &crate::builder::ArgPredicate::IsPresent)
+                    // Avoid including our own groups by checking none of them.  If a group is present, the
+                    // args for the group will be.
+                    && self.cmd.find(arg_id).is_some()
             })
             .count();
         if args_count <= 1 {
@@ -183,13 +190,17 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
         ))
     }
 
-    fn build_conflict_err_usage(&self, matcher: &ArgMatcher, conflicting_keys: &[Id]) -> String {
+    fn build_conflict_err_usage(
+        &self,
+        matcher: &ArgMatcher,
+        conflicting_keys: &[Id],
+    ) -> Option<StyledStr> {
         let used_filtered: Vec<Id> = matcher
             .arg_ids()
             .filter(|arg_id| matcher.check_explicit(arg_id, &ArgPredicate::IsPresent))
             .filter(|n| {
                 // Filter out the args we don't want to specify.
-                self.cmd.find(n).map_or(true, |a| !a.is_hide_set())
+                self.cmd.find(n).map_or(false, |a| !a.is_hide_set())
             })
             .filter(|key| !conflicting_keys.contains(key))
             .cloned()
@@ -216,11 +227,11 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             debug!("Validator::gather_requires:iter:{:?}", name);
             if let Some(arg) = self.cmd.find(name) {
                 let is_relevant = |(val, req_arg): &(ArgPredicate, Id)| -> Option<Id> {
-                    let required = matcher.check_explicit(&arg.id, val);
+                    let required = matcher.check_explicit(arg.get_id(), val);
                     required.then(|| req_arg.clone())
                 };
 
-                for req in self.cmd.unroll_arg_requires(is_relevant, &arg.id) {
+                for req in self.cmd.unroll_arg_requires(is_relevant, arg.get_id()) {
                     self.required.insert(req);
                 }
             } else if let Some(g) = self.cmd.find_group(name) {
@@ -239,6 +250,9 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
     ) -> ClapResult<()> {
         debug!("Validator::validate_required: required={:?}", self.required);
         self.gather_requires(matcher);
+
+        let mut missing_required = Vec::new();
+        let mut highest_index = 0;
 
         let is_exclusive_present = matcher
             .arg_ids()
@@ -263,7 +277,14 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             if let Some(arg) = self.cmd.find(arg_or_group) {
                 debug!("Validator::validate_required:iter: This is an arg");
                 if !is_exclusive_present && !self.is_missing_required_ok(arg, matcher, conflicts) {
-                    return self.missing_required_error(matcher, vec![]);
+                    debug!(
+                        "Validator::validate_required:iter: Missing {:?}",
+                        arg.get_id()
+                    );
+                    missing_required.push(arg.get_id().clone());
+                    if !arg.is_last_set() {
+                        highest_index = highest_index.max(arg.get_index().unwrap_or(0));
+                    }
                 }
             } else if let Some(group) = self.cmd.find_group(arg_or_group) {
                 debug!("Validator::validate_required:iter: This is a group");
@@ -273,69 +294,99 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
                     .iter()
                     .any(|a| matcher.check_explicit(a, &ArgPredicate::IsPresent))
                 {
-                    return self.missing_required_error(matcher, vec![]);
+                    debug!(
+                        "Validator::validate_required:iter: Missing {:?}",
+                        group.get_id()
+                    );
+                    missing_required.push(group.get_id().clone());
                 }
             }
         }
 
         // Validate the conditionally required args
-        for a in self.cmd.get_arguments() {
+        for a in self
+            .cmd
+            .get_arguments()
+            .filter(|a| !matcher.check_explicit(a.get_id(), &ArgPredicate::IsPresent))
+        {
+            let mut required = false;
+
             for (other, val) in &a.r_ifs {
-                if matcher.check_explicit(other, &ArgPredicate::Equals(val.into()))
-                    && !matcher.check_explicit(&a.id, &ArgPredicate::IsPresent)
-                {
-                    return self.missing_required_error(matcher, vec![a.id.clone()]);
+                if matcher.check_explicit(other, &ArgPredicate::Equals(val.into())) {
+                    debug!(
+                        "Validator::validate_required:iter: Missing {:?}",
+                        a.get_id()
+                    );
+                    required = true;
                 }
             }
 
             let match_all = a.r_ifs_all.iter().all(|(other, val)| {
                 matcher.check_explicit(other, &ArgPredicate::Equals(val.into()))
             });
-            if match_all
-                && !a.r_ifs_all.is_empty()
-                && !matcher.check_explicit(&a.id, &ArgPredicate::IsPresent)
+            if match_all && !a.r_ifs_all.is_empty() {
+                debug!(
+                    "Validator::validate_required:iter: Missing {:?}",
+                    a.get_id()
+                );
+                required = true;
+            }
+
+            if (!a.r_unless.is_empty() || !a.r_unless_all.is_empty())
+                && self.fails_arg_required_unless(a, matcher)
             {
-                return self.missing_required_error(matcher, vec![a.id.clone()]);
+                debug!(
+                    "Validator::validate_required:iter: Missing {:?}",
+                    a.get_id()
+                );
+                required = true;
+            }
+
+            if required {
+                missing_required.push(a.get_id().clone());
+                if !a.is_last_set() {
+                    highest_index = highest_index.max(a.get_index().unwrap_or(0));
+                }
             }
         }
 
-        self.validate_required_unless(matcher)?;
+        // For display purposes, include all of the preceding positional arguments
+        if !self.cmd.is_allow_missing_positional_set() {
+            for pos in self
+                .cmd
+                .get_positionals()
+                .filter(|a| !matcher.check_explicit(a.get_id(), &ArgPredicate::IsPresent))
+            {
+                if pos.get_index() < Some(highest_index) {
+                    debug!(
+                        "Validator::validate_required:iter: Missing {:?}",
+                        pos.get_id()
+                    );
+                    missing_required.push(pos.get_id().clone());
+                }
+            }
+        }
+
+        if !missing_required.is_empty() {
+            ok!(self.missing_required_error(matcher, missing_required));
+        }
 
         Ok(())
     }
 
     fn is_missing_required_ok(
         &self,
-        a: &Arg<'help>,
+        a: &Arg,
         matcher: &ArgMatcher,
         conflicts: &mut Conflicts,
     ) -> bool {
         debug!("Validator::is_missing_required_ok: {}", a.get_id());
-        let conflicts = conflicts.gather_conflicts(self.cmd, matcher, &a.id);
+        let conflicts = conflicts.gather_conflicts(self.cmd, matcher, a.get_id());
         !conflicts.is_empty()
     }
 
-    fn validate_required_unless(&self, matcher: &ArgMatcher) -> ClapResult<()> {
-        debug!("Validator::validate_required_unless");
-        let failed_args: Vec<_> = self
-            .cmd
-            .get_arguments()
-            .filter(|&a| {
-                (!a.r_unless.is_empty() || !a.r_unless_all.is_empty())
-                    && !matcher.check_explicit(&a.id, &ArgPredicate::IsPresent)
-                    && self.fails_arg_required_unless(a, matcher)
-            })
-            .map(|a| a.id.clone())
-            .collect();
-        if failed_args.is_empty() {
-            Ok(())
-        } else {
-            self.missing_required_error(matcher, failed_args)
-        }
-    }
-
     // Failing a required unless means, the arg's "unless" wasn't present, and neither were they
-    fn fails_arg_required_unless(&self, a: &Arg<'help>, matcher: &ArgMatcher) -> bool {
+    fn fails_arg_required_unless(&self, a: &Arg, matcher: &ArgMatcher) -> bool {
         debug!("Validator::fails_arg_required_unless: a={:?}", a.get_id());
         let exists = |id| matcher.check_explicit(id, &ArgPredicate::IsPresent);
 
@@ -343,9 +394,13 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             && !a.r_unless.iter().any(exists)
     }
 
-    // `incl`: an arg to include in the error even if not used
-    fn missing_required_error(&self, matcher: &ArgMatcher, incl: Vec<Id>) -> ClapResult<()> {
-        debug!("Validator::missing_required_error; incl={:?}", incl);
+    // `req_args`: an arg to include in the error even if not used
+    fn missing_required_error(
+        &self,
+        matcher: &ArgMatcher,
+        raw_req_args: Vec<Id>,
+    ) -> ClapResult<()> {
+        debug!("Validator::missing_required_error; incl={:?}", raw_req_args);
         debug!(
             "Validator::missing_required_error: reqs={:?}",
             self.required
@@ -353,10 +408,32 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
 
         let usg = Usage::new(self.cmd).required(&self.required);
 
-        let req_args = usg
-            .get_required_usage_from(&incl, Some(matcher), true)
-            .into_iter()
-            .collect::<Vec<_>>();
+        let req_args = {
+            #[cfg(feature = "usage")]
+            {
+                usg.get_required_usage_from(&raw_req_args, Some(matcher), true)
+                    .into_iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+            }
+
+            #[cfg(not(feature = "usage"))]
+            {
+                raw_req_args
+                    .iter()
+                    .map(|id| {
+                        if let Some(arg) = self.cmd.find(id) {
+                            arg.to_string()
+                        } else if let Some(_group) = self.cmd.find_group(id) {
+                            self.cmd.format_group(id).to_string()
+                        } else {
+                            debug_assert!(false, "id={:?} is unknown", id);
+                            "".to_owned()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            }
+        };
 
         debug!(
             "Validator::missing_required_error: req_args={:#?}",
@@ -368,10 +445,10 @@ impl<'help, 'cmd> Validator<'help, 'cmd> {
             .filter(|arg_id| matcher.check_explicit(arg_id, &ArgPredicate::IsPresent))
             .filter(|n| {
                 // Filter out the args we don't want to specify.
-                self.cmd.find(n).map_or(true, |a| !a.is_hide_set())
+                self.cmd.find(n).map_or(false, |a| !a.is_hide_set())
             })
             .cloned()
-            .chain(incl)
+            .chain(raw_req_args)
             .collect();
 
         Err(Error::missing_required_argument(
@@ -455,7 +532,7 @@ impl Conflicts {
     }
 }
 
-pub(crate) fn get_possible_values_cli<'help>(a: &Arg<'help>) -> Vec<PossibleValue<'help>> {
+pub(crate) fn get_possible_values_cli(a: &Arg) -> Vec<PossibleValue> {
     if !a.is_takes_value_set() {
         vec![]
     } else {

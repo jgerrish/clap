@@ -25,7 +25,7 @@ fn flatten() {
 
     #[derive(Parser, PartialEq, Debug)]
     struct Opt {
-        #[clap(flatten)]
+        #[command(flatten)]
         common: Common,
     }
     assert_eq!(
@@ -49,10 +49,10 @@ fn flatten_twice() {
 
     #[derive(Parser, PartialEq, Debug)]
     struct Opt {
-        #[clap(flatten)]
+        #[command(flatten)]
         c1: Common,
         // Defines "arg" twice, so this should not work.
-        #[clap(flatten)]
+        #[command(flatten)]
         c2: Common,
     }
     Opt::try_parse_from(&["test", "42", "43"]).unwrap();
@@ -67,18 +67,18 @@ fn flatten_in_subcommand() {
 
     #[derive(Args, PartialEq, Debug)]
     struct Add {
-        #[clap(short)]
+        #[arg(short)]
         interactive: bool,
-        #[clap(flatten)]
+        #[command(flatten)]
         common: Common,
     }
 
     #[derive(Parser, PartialEq, Debug)]
     enum Opt {
         Fetch {
-            #[clap(short)]
+            #[arg(short)]
             all: bool,
-            #[clap(flatten)]
+            #[command(flatten)]
             common: Common,
         },
 
@@ -110,7 +110,7 @@ fn update_args_with_flatten() {
 
     #[derive(Parser, PartialEq, Debug)]
     struct Opt {
-        #[clap(flatten)]
+        #[command(flatten)]
         common: Common,
     }
 
@@ -146,7 +146,7 @@ struct Command2 {
 
 #[derive(Parser, PartialEq, Debug)]
 enum Opt {
-    #[clap(flatten)]
+    #[command(flatten)]
     BaseCli(BaseCli),
     Command2(Command2),
 }
@@ -200,7 +200,7 @@ fn flatten_with_doc_comment() {
     struct Opt {
         /// The very important comment that clippy had me put here.
         /// It knows better.
-        #[clap(flatten)]
+        #[command(flatten)]
         common: Common,
     }
     assert_eq!(
@@ -216,18 +216,18 @@ fn flatten_with_doc_comment() {
 }
 
 #[test]
-fn docstrings_ordering_with_multiple_clap() {
+fn docstrings_ordering_with_multiple_command() {
     /// This is the docstring for Flattened
     #[derive(Args)]
     struct Flattened {
-        #[clap(long)]
+        #[arg(long)]
         foo: bool,
     }
 
     /// This is the docstring for Command
     #[derive(Parser)]
     struct Command {
-        #[clap(flatten)]
+        #[command(flatten)]
         flattened: Flattened,
     }
 
@@ -241,17 +241,60 @@ fn docstrings_ordering_with_multiple_clap_partial() {
     /// This is the docstring for Flattened
     #[derive(Args)]
     struct Flattened {
-        #[clap(long)]
+        #[arg(long)]
         foo: bool,
     }
 
     #[derive(Parser)]
     struct Command {
-        #[clap(flatten)]
+        #[command(flatten)]
         flattened: Flattened,
     }
 
     let short_help = utils::get_help::<Command>();
 
     assert!(short_help.contains("This is the docstring for Flattened"));
+}
+
+#[test]
+fn optional_flatten() {
+    #[derive(Parser, Debug, PartialEq, Eq)]
+    struct Opt {
+        #[command(flatten)]
+        source: Option<Source>,
+    }
+
+    #[derive(clap::Args, Debug, PartialEq, Eq)]
+    struct Source {
+        crates: Vec<String>,
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+        #[arg(long)]
+        git: Option<String>,
+    }
+
+    assert_eq!(
+        Opt { source: None },
+        Opt::try_parse_from(&["test"]).unwrap()
+    );
+    assert_eq!(
+        Opt {
+            source: Some(Source {
+                crates: vec!["serde".to_owned()],
+                path: None,
+                git: None,
+            }),
+        },
+        Opt::try_parse_from(&["test", "serde"]).unwrap()
+    );
+    assert_eq!(
+        Opt {
+            source: Some(Source {
+                crates: Vec::new(),
+                path: Some("./".into()),
+                git: None,
+            }),
+        },
+        Opt::try_parse_from(&["test", "--path=./"]).unwrap()
+    );
 }

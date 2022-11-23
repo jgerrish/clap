@@ -19,10 +19,7 @@ pub fn all_subcommands(cmd: &Command) -> Vec<(String, String)> {
 /// Finds the subcommand [`clap::Command`] from the given [`clap::Command`] with the given path.
 ///
 /// **NOTE:** `path` should not contain the root `bin_name`.
-pub fn find_subcommand_with_path<'help, 'cmd>(
-    p: &'cmd Command<'help>,
-    path: Vec<&str>,
-) -> &'cmd Command<'help> {
+pub fn find_subcommand_with_path<'cmd>(p: &'cmd Command, path: Vec<&str>) -> &'cmd Command {
     let mut cmd = p;
 
     for sc in path {
@@ -41,10 +38,6 @@ pub fn subcommands(p: &Command) -> Vec<(String, String)> {
     debug!("subcommands: Has subcommands...{:?}", p.has_subcommands());
 
     let mut subcmds = vec![];
-
-    if !p.has_subcommands() {
-        return subcmds;
-    }
 
     for sc in p.get_subcommands() {
         let sc_bin_name = sc.get_bin_name().unwrap();
@@ -118,7 +111,7 @@ pub fn longs_and_visible_aliases(p: &Command) -> Vec<String> {
 
 /// Gets all the flags of a [`clap::Command`](Command).
 /// Includes `help` and `version` depending on the [`clap::Command`] settings.
-pub fn flags<'help>(p: &Command<'help>) -> Vec<Arg<'help>> {
+pub fn flags(p: &Command) -> Vec<Arg> {
     debug!("flags: name={}", p.get_name());
     p.get_arguments()
         .filter(|a| !a.get_num_args().expect("built").takes_values() && !a.is_positional())
@@ -127,7 +120,7 @@ pub fn flags<'help>(p: &Command<'help>) -> Vec<Arg<'help>> {
 }
 
 /// Get the possible values for completion
-pub fn possible_values<'help>(a: &Arg<'help>) -> Option<Vec<clap::builder::PossibleValue<'help>>> {
+pub fn possible_values(a: &Arg) -> Option<Vec<clap::builder::PossibleValue>> {
     if !a.get_num_args().expect("built").takes_values() {
         None
     } else {
@@ -142,9 +135,8 @@ mod tests {
     use super::*;
     use clap::Arg;
     use clap::ArgAction;
-    use pretty_assertions::assert_eq;
 
-    fn common_app() -> Command<'static> {
+    fn common_app() -> Command {
         Command::new("myapp")
             .subcommand(
                 Command::new("test").subcommand(Command::new("config")).arg(
@@ -161,14 +153,14 @@ mod tests {
             .bin_name("my-cmd")
     }
 
-    fn built() -> Command<'static> {
+    fn built() -> Command {
         let mut cmd = common_app();
 
         cmd.build();
         cmd
     }
 
-    fn built_with_version() -> Command<'static> {
+    fn built_with_version() -> Command {
         let mut cmd = common_app().version("3.0");
 
         cmd.build();
@@ -201,6 +193,12 @@ mod tests {
                 ("help".to_string(), "my-cmd help".to_string()),
                 ("config".to_string(), "my-cmd test config".to_string()),
                 ("help".to_string(), "my-cmd test help".to_string()),
+                ("config".to_string(), "my-cmd test help config".to_string()),
+                ("help".to_string(), "my-cmd test help help".to_string()),
+                ("test".to_string(), "my-cmd help test".to_string()),
+                ("hello".to_string(), "my-cmd help hello".to_string()),
+                ("help".to_string(), "my-cmd help help".to_string()),
+                ("config".to_string(), "my-cmd help test config".to_string()),
             ]
         );
     }

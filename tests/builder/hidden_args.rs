@@ -2,18 +2,16 @@ use super::utils;
 
 use clap::{arg, Arg, ArgAction, Command};
 
-static HIDDEN_ARGS: &str = "test 1.4
-Kevin K.
+static HIDDEN_ARGS: &str = "\
 tests stuff
 
-USAGE:
-    test [OPTIONS]
+Usage: test [OPTIONS]
 
-OPTIONS:
-    -F, --flag2           some other flag
-        --option <opt>    some option
-    -h, --help            Print help information
-    -V, --version         Print version information
+Options:
+  -F, --flag2         some other flag
+      --option <opt>  some option
+  -h, --help          Print help information
+  -V, --version       Print version information
 ";
 
 #[test]
@@ -25,23 +23,21 @@ fn hide_args() {
         .args(&[
             arg!(-f --flag "some flag").hide(true),
             arg!(-F --flag2 "some other flag"),
-            arg!(--option <opt> "some option").required(false),
+            arg!(--option <opt> "some option"),
             Arg::new("DUMMY").hide(true),
         ]);
     utils::assert_output(cmd, "test --help", HIDDEN_ARGS, false);
 }
 
-static HIDDEN_SHORT_ARGS: &str = "test 2.31.2
-Steve P.
+static HIDDEN_SHORT_ARGS: &str = "\
 hides short args
 
-USAGE:
-    test [OPTIONS]
+Usage: test [OPTIONS]
 
-OPTIONS:
-    -v, --visible    This text should be visible
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -v, --visible  This text should be visible
+  -h, --help     Print help information (use `--help` for more detail)
+  -V, --version  Print version information
 ";
 
 /// Ensure hide with short option
@@ -71,25 +67,23 @@ fn hide_short_args() {
 /// Ensure visible with opposite option
 #[test]
 fn hide_short_args_long_help() {
-    static HIDDEN_SHORT_ARGS_LONG_HELP: &str = "test 2.31.2
-Steve P.
+    static HIDDEN_SHORT_ARGS_LONG_HELP: &str = "\
 hides short args
 
-USAGE:
-    test [OPTIONS]
+Usage: test [OPTIONS]
 
-OPTIONS:
-    -c, --config
-            Some help text describing the --config arg
+Options:
+  -c, --config
+          Some help text describing the --config arg
 
-    -v, --visible
-            This text should be visible
+  -v, --visible
+          This text should be visible
 
-    -h, --help
-            Print help information
+  -h, --help
+          Print help information (use `-h` for a summary)
 
-    -V, --version
-            Print version information
+  -V, --version
+          Print version information
 ";
 
     let cmd = Command::new("test")
@@ -113,22 +107,20 @@ OPTIONS:
     utils::assert_output(cmd, "test --help", HIDDEN_SHORT_ARGS_LONG_HELP, false);
 }
 
-static HIDDEN_LONG_ARGS: &str = "test 2.31.2
-Steve P.
+static HIDDEN_LONG_ARGS: &str = "\
 hides long args
 
-USAGE:
-    test [OPTIONS]
+Usage: test [OPTIONS]
 
-OPTIONS:
-    -v, --visible
-            This text should be visible
+Options:
+  -v, --visible
+          This text should be visible
 
-    -h, --help
-            Print help information
+  -h, --help
+          Print help information (use `-h` for a summary)
 
-    -V, --version
-            Print version information
+  -V, --version
+          Print version information
 ";
 
 #[test]
@@ -154,18 +146,16 @@ fn hide_long_args() {
     utils::assert_output(cmd, "test --help", HIDDEN_LONG_ARGS, false);
 }
 
-static HIDDEN_LONG_ARGS_SHORT_HELP: &str = "test 2.31.2
-Steve P.
+static HIDDEN_LONG_ARGS_SHORT_HELP: &str = "\
 hides long args
 
-USAGE:
-    test [OPTIONS]
+Usage: test [OPTIONS]
 
-OPTIONS:
-    -c, --config     Some help text describing the --config arg
-    -v, --visible    This text should be visible
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -c, --config   Some help text describing the --config arg
+  -v, --visible  This text should be visible
+  -h, --help     Print help information (use `--help` for more detail)
+  -V, --version  Print version information
 ";
 
 #[test]
@@ -191,17 +181,15 @@ fn hide_long_args_short_help() {
     utils::assert_output(cmd, "test -h", HIDDEN_LONG_ARGS_SHORT_HELP, false);
 }
 
-static HIDDEN_POS_ARGS: &str = "test 1.4
+static HIDDEN_POS_ARGS: &str = "\
+Usage: test [another]
 
-USAGE:
-    test [another]
+Arguments:
+  [another]  another pos
 
-ARGS:
-    <another>    another pos
-
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 ";
 
 #[test]
@@ -214,14 +202,12 @@ fn hide_pos_args() {
     utils::assert_output(cmd, "test --help", HIDDEN_POS_ARGS, false);
 }
 
-static HIDDEN_SUBCMDS: &str = "test 1.4
+static HIDDEN_SUBCMDS: &str = "\
+Usage: test
 
-USAGE:
-    test
-
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 ";
 
 #[test]
@@ -233,10 +219,8 @@ fn hide_subcmds() {
     utils::assert_output(cmd, "test --help", HIDDEN_SUBCMDS, false);
 }
 
-static HIDDEN_OPT_ARGS_ONLY: &str = "test 1.4
-
-USAGE:
-    test
+static HIDDEN_OPT_ARGS_ONLY: &str = "\
+Usage: test
 
 After help
 ";
@@ -250,19 +234,13 @@ fn hide_opt_args_only() {
         .disable_version_flag(true)
         .arg(arg!(-h - -help).action(ArgAction::Help).hide(true))
         .arg(arg!(-v - -version).hide(true))
-        .arg(
-            arg!(--option <opt> "some option")
-                .required(false)
-                .hide(true),
-        );
+        .arg(arg!(--option <opt> "some option").hide(true));
 
     utils::assert_output(cmd, "test --help", HIDDEN_OPT_ARGS_ONLY, false);
 }
 
-static HIDDEN_POS_ARGS_ONLY: &str = "test 1.4
-
-USAGE:
-    test
+static HIDDEN_POS_ARGS_ONLY: &str = "\
+Usage: test
 
 After help
 ";
@@ -281,10 +259,8 @@ fn hide_pos_args_only() {
     utils::assert_output(cmd, "test --help", HIDDEN_POS_ARGS_ONLY, false);
 }
 
-static HIDDEN_SUBCMDS_ONLY: &str = "test 1.4
-
-USAGE:
-    test
+static HIDDEN_SUBCMDS_ONLY: &str = "\
+Usage: test
 
 After help
 ";

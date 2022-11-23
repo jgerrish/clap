@@ -6,18 +6,16 @@ use clap::{Arg, ArgAction, Command};
 
 #[test]
 fn no_derive_order() {
-    static NO_DERIVE_ORDER: &str = "test 1.2
+    static NO_DERIVE_ORDER: &str = "\
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-        --flag_a                 second flag
-        --flag_b                 first flag
-    -h, --help                   Print help information
-        --option_a <option_a>    second option
-        --option_b <option_b>    first option
-    -V, --version                Print version information
+Options:
+      --flag_a               second flag
+      --flag_b               first flag
+  -h, --help                 Print help information
+      --option_a <option_a>  second option
+      --option_b <option_b>  first option
+  -V, --version              Print version information
 ";
 
     let cmd = Command::new("test")
@@ -47,18 +45,16 @@ OPTIONS:
 
 #[test]
 fn derive_order() {
-    static UNIFIED_HELP_AND_DERIVE: &str = "test 1.2
+    static UNIFIED_HELP_AND_DERIVE: &str = "\
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-        --flag_b                 first flag
-        --option_b <option_b>    first option
-        --flag_a                 second flag
-        --option_a <option_a>    second option
-    -h, --help                   Print help information
-    -V, --version                Print version information
+Options:
+      --flag_b               first flag
+      --option_b <option_b>  first option
+      --flag_a               second flag
+      --option_a <option_a>  second option
+  -h, --help                 Print help information
+  -V, --version              Print version information
 ";
 
     let cmd = Command::new("test").version("1.2").args(&[
@@ -85,18 +81,16 @@ OPTIONS:
 
 #[test]
 fn derive_order_next_order() {
-    static HELP: &str = "test 1.2
+    static HELP: &str = "\
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-        --flag_b                 first flag
-        --option_b <option_b>    first option
-    -h, --help                   Print help information
-    -V, --version                Print version information
-        --flag_a                 second flag
-        --option_a <option_a>    second option
+Options:
+      --flag_b               first flag
+      --option_b <option_b>  first option
+  -h, --help                 Print help information
+  -V, --version              Print version information
+      --flag_a               second flag
+      --option_a <option_a>  second option
 ";
 
     let cmd = Command::new("test")
@@ -133,18 +127,16 @@ OPTIONS:
 
 #[test]
 fn derive_order_no_next_order() {
-    static HELP: &str = "test 1.2
+    static HELP: &str = "\
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-        --flag_a                 first flag
-        --flag_b                 second flag
-    -h, --help                   Print help information
-        --option_a <option_a>    first option
-        --option_b <option_b>    second option
-    -V, --version                Print version information
+Options:
+      --flag_a               first flag
+      --flag_b               second flag
+  -h, --help                 Print help information
+      --option_a <option_a>  first option
+      --option_b <option_b>  second option
+  -V, --version              Print version information
 ";
 
     let cmd = Command::new("test")
@@ -180,18 +172,16 @@ OPTIONS:
 
 #[test]
 fn derive_order_subcommand_propagate() {
-    static UNIFIED_DERIVE_SC_PROP: &str = "test-sub 1.2
+    static UNIFIED_DERIVE_SC_PROP: &str = "\
+Usage: test sub [OPTIONS]
 
-USAGE:
-    test sub [OPTIONS]
-
-OPTIONS:
-        --flag_b                 first flag
-        --option_b <option_b>    first option
-        --flag_a                 second flag
-        --option_a <option_a>    second option
-    -h, --help                   Print help information
-    -V, --version                Print version information
+Options:
+      --flag_b               first flag
+      --option_b <option_b>  first option
+      --flag_a               second flag
+      --option_a <option_a>  second option
+  -h, --help                 Print help information
+  -V, --version              Print version information
 ";
 
     let cmd = Command::new("test").subcommand(
@@ -220,18 +210,16 @@ OPTIONS:
 
 #[test]
 fn derive_order_subcommand_propagate_with_explicit_display_order() {
-    static UNIFIED_DERIVE_SC_PROP_EXPLICIT_ORDER: &str = "test-sub 1.2
+    static UNIFIED_DERIVE_SC_PROP_EXPLICIT_ORDER: &str = "\
+Usage: test sub [OPTIONS]
 
-USAGE:
-    test sub [OPTIONS]
-
-OPTIONS:
-        --flag_a                 second flag
-        --flag_b                 first flag
-        --option_b <option_b>    first option
-        --option_a <option_a>    second option
-    -h, --help                   Print help information
-    -V, --version                Print version information
+Options:
+      --flag_a               second flag
+      --flag_b               first flag
+      --option_b <option_b>  first option
+      --option_a <option_a>  second option
+  -h, --help                 Print help information
+  -V, --version              Print version information
 ";
 
     let cmd = Command::new("test").subcommand(
@@ -266,19 +254,17 @@ OPTIONS:
 
 #[test]
 fn subcommand_sorted_display_order() {
-    static SUBCMD_ALPHA_ORDER: &str = "test 1
+    static SUBCMD_ALPHA_ORDER: &str = "\
+Usage: test [COMMAND]
 
-USAGE:
-    test [SUBCOMMAND]
+Commands:
+  a1    blah a1
+  b1    blah b1
+  help  Print this message or the help of the given subcommand(s)
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
-
-SUBCOMMANDS:
-    a1      blah a1
-    b1      blah b1
-    help    Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 ";
 
     let app_subcmd_alpha_order = Command::new("test")
@@ -303,19 +289,17 @@ SUBCOMMANDS:
 
 #[test]
 fn subcommand_derived_display_order() {
-    static SUBCMD_DECL_ORDER: &str = "test 1
+    static SUBCMD_DECL_ORDER: &str = "\
+Usage: test [COMMAND]
 
-USAGE:
-    test [SUBCOMMAND]
+Commands:
+  b1    blah b1
+  a1    blah a1
+  help  Print this message or the help of the given subcommand(s)
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
-
-SUBCOMMANDS:
-    b1      blah b1
-    a1      blah a1
-    help    Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
 ";
 
     let app_subcmd_decl_order = Command::new("test").version("1").subcommands(vec![

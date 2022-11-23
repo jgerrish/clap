@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::borrow::Borrow;
 
 /// Flat (Vec) backed set
@@ -26,7 +28,7 @@ impl<T: PartialEq + Eq> FlatSet<T> {
     pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
     where
         T: Borrow<Q>,
-        Q: std::hash::Hash + Eq,
+        Q: Eq,
     {
         for existing in &self.inner {
             if existing.borrow() == value {
@@ -49,6 +51,14 @@ impl<T: PartialEq + Eq> FlatSet<T> {
 
     pub(crate) fn iter(&self) -> std::slice::Iter<'_, T> {
         self.inner.iter()
+    }
+
+    pub fn sort_by_key<K, F>(&mut self, f: F)
+    where
+        F: FnMut(&T) -> K,
+        K: Ord,
+    {
+        self.inner.sort_by_key(f);
     }
 }
 

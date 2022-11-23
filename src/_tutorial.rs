@@ -110,9 +110,7 @@
 //! ```
 #![doc = include_str!("../examples/tutorial_builder/03_01_flag_bool.md")]
 //!
-//! Note that the default [`ArgAction`][crate::ArgAction]` for a `bool` field is
-//! [`SetTrue`][crate::ArgAction::SetTrue].  To accept multiple values, use
-//! [`Append`][crate::ArgAction::Append]:
+//! To accept multiple flags, use [`Count`][crate::ArgAction::Count]:
 //!
 //! ```rust
 #![doc = include_str!("../examples/tutorial_builder/03_01_flag_count.rs")]
@@ -142,6 +140,8 @@
 #![doc = include_str!("../examples/tutorial_builder/03_05_default_values.md")]
 //!
 //! ## Validation
+//!
+//! By default, arguments are assumed to be `String`s and only UTF-8 validation is performed.
 //!
 //! ### Enumerated values
 //!
@@ -182,6 +182,8 @@
 #![doc = include_str!("../examples/tutorial_builder/04_02_validate.rs")]
 //! ```
 #![doc = include_str!("../examples/tutorial_builder/04_02_validate.md")]
+//!
+//! See [`Arg::value_parser`][crate::Arg::value_parser] for more details.
 //!
 //! ### Argument Relations
 //!

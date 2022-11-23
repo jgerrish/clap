@@ -1,4 +1,4 @@
-use crate::Str;
+use crate::builder::Str;
 
 /// [`Arg`][crate::Arg] or [`ArgGroup`][crate::ArgGroup] identifier
 ///
@@ -9,17 +9,21 @@ use crate::Str;
 pub struct Id(Str);
 
 impl Id {
-    pub(crate) const HELP: Self = Self::from_static_ref("help");
-    pub(crate) const VERSION: Self = Self::from_static_ref("version");
-    pub(crate) const EXTERNAL: Self = Self::from_static_ref("");
+    pub(crate) const HELP: &'static str = "help";
+    pub(crate) const VERSION: &'static str = "version";
+    pub(crate) const EXTERNAL: &'static str = "";
 
-    const fn from_static_ref(name: &'static str) -> Self {
+    pub(crate) fn from_static_ref(name: &'static str) -> Self {
         Self(Str::from_static_ref(name))
     }
 
     /// Get the raw string of the `Id`
     pub fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    pub(crate) fn as_internal_str(&self) -> &Str {
+        &self.0
     }
 }
 
@@ -41,12 +45,14 @@ impl From<&'_ Str> for Id {
     }
 }
 
+#[cfg(feature = "string")]
 impl From<std::string::String> for Id {
     fn from(name: std::string::String) -> Self {
         Self(name.into())
     }
 }
 
+#[cfg(feature = "string")]
 impl From<&'_ std::string::String> for Id {
     fn from(name: &'_ std::string::String) -> Self {
         Self(name.into())
@@ -62,6 +68,18 @@ impl From<&'static str> for Id {
 impl From<&'_ &'static str> for Id {
     fn from(name: &'_ &'static str) -> Self {
         Self(name.into())
+    }
+}
+
+impl From<Id> for Str {
+    fn from(name: Id) -> Self {
+        name.0
+    }
+}
+
+impl From<Id> for String {
+    fn from(name: Id) -> Self {
+        Str::from(name).into()
     }
 }
 
@@ -99,11 +117,23 @@ impl PartialEq<str> for Id {
         PartialEq::eq(self.as_str(), other)
     }
 }
+impl PartialEq<Id> for str {
+    #[inline]
+    fn eq(&self, other: &Id) -> bool {
+        PartialEq::eq(self, other.as_str())
+    }
+}
 
 impl PartialEq<&'_ str> for Id {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
         PartialEq::eq(self.as_str(), *other)
+    }
+}
+impl PartialEq<Id> for &'_ str {
+    #[inline]
+    fn eq(&self, other: &Id) -> bool {
+        PartialEq::eq(*self, other.as_str())
     }
 }
 
@@ -113,10 +143,22 @@ impl PartialEq<Str> for Id {
         PartialEq::eq(self.as_str(), other.as_str())
     }
 }
+impl PartialEq<Id> for Str {
+    #[inline]
+    fn eq(&self, other: &Id) -> bool {
+        PartialEq::eq(self.as_str(), other.as_str())
+    }
+}
 
 impl PartialEq<std::string::String> for Id {
     #[inline]
     fn eq(&self, other: &std::string::String) -> bool {
         PartialEq::eq(self.as_str(), other.as_str())
+    }
+}
+impl PartialEq<Id> for std::string::String {
+    #[inline]
+    fn eq(&self, other: &Id) -> bool {
+        PartialEq::eq(other, self)
     }
 }

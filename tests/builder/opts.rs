@@ -1,34 +1,7 @@
-use super::utils;
-
 use clap::{arg, error::ErrorKind, Arg, ArgAction, ArgMatches, Command};
 
-#[cfg(feature = "suggestions")]
-static DYM: &str =
-    "error: Found argument '--optio' which wasn't expected, or isn't valid in this context
-
-\tDid you mean '--option'?
-
-\tIf you tried to supply `--optio` as a value rather than a flag, use `-- --optio`
-
-USAGE:
-    clap-test --option <opt>...
-
-For more information try --help
-";
-
-#[cfg(feature = "suggestions")]
-static DYM_ISSUE_1073: &str =
-    "error: Found argument '--files-without-matches' which wasn't expected, or isn't valid in this context
-
-\tDid you mean '--files-without-match'?
-
-\tIf you tried to supply `--files-without-matches` as a value rather than a flag, use `-- --files-without-matches`
-
-USAGE:
-    ripgrep-616 --files-without-match
-
-For more information try --help
-";
+#[cfg(feature = "error-context")]
+use super::utils;
 
 #[test]
 fn require_equals_fail() {
@@ -46,14 +19,13 @@ fn require_equals_fail() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn require_equals_fail_message() {
-    static NO_EQUALS: &str =
-        "error: Equal sign is needed when assigning values to '--config=<cfg>'.
+    static NO_EQUALS: &str = "error: Equal sign is needed when assigning values to '--config=<cfg>'
 
-USAGE:
-    prog [OPTIONS]
+Usage: prog [OPTIONS]
 
-For more information try --help
+For more information try '--help'
 ";
     let cmd = Command::new("prog").arg(
         Arg::new("cfg")
@@ -177,7 +149,7 @@ fn opts_using_short() {
 #[test]
 fn lots_o_vals() {
     let r = Command::new("opts")
-        .arg(arg!(o: -o <opt> "some opt").num_args(1..))
+        .arg(arg!(o: -o <opt> "some opt").num_args(1..).required(true))
         .try_get_matches_from(vec![
             "", "-o", "some", "some", "some", "some", "some", "some", "some", "some", "some",
             "some", "some", "some", "some", "some", "some", "some", "some", "some", "some", "some",
@@ -347,7 +319,11 @@ fn require_delims_no_delim() {
 #[test]
 fn require_delims() {
     let r = Command::new("mvae")
-        .arg(arg!(o: -o <opt> "some opt").value_delimiter(','))
+        .arg(
+            arg!(o: -o <opt> "some opt")
+                .value_delimiter(',')
+                .required(true),
+        )
         .arg(arg!([file] "some file"))
         .try_get_matches_from(vec!["", "-o", "1,2", "some"]);
     assert!(r.is_ok(), "{}", r.unwrap_err());
@@ -372,6 +348,7 @@ fn leading_hyphen_pass() {
     let r = Command::new("mvae")
         .arg(
             arg!(o: -o <opt> "some opt")
+                .required(true)
                 .num_args(1..)
                 .allow_hyphen_values(true),
         )
@@ -391,7 +368,7 @@ fn leading_hyphen_pass() {
 #[test]
 fn leading_hyphen_fail() {
     let r = Command::new("mvae")
-        .arg(arg!(o: -o <opt> "some opt"))
+        .arg(arg!(o: -o <opt> "some opt").required(true))
         .try_get_matches_from(vec!["", "-o", "-2"]);
     assert!(r.is_err());
     let m = r.unwrap_err();
@@ -403,6 +380,7 @@ fn leading_hyphen_with_flag_after() {
     let r = Command::new("mvae")
         .arg(
             arg!(o: -o <opt> "some opt")
+                .required(true)
                 .num_args(1..)
                 .allow_hyphen_values(true),
         )
@@ -465,7 +443,18 @@ fn leading_hyphen_with_only_pos_follows() {
 
 #[test]
 #[cfg(feature = "suggestions")]
+#[cfg(feature = "error-context")]
 fn did_you_mean() {
+    static DYM: &str = "\
+error: Found argument '--optio' which wasn't expected, or isn't valid in this context
+
+  Did you mean '--option'?
+
+Usage: clap-test --option <opt>... [positional] [positional2] [positional3]...
+
+For more information try '--help'
+";
+
     utils::assert_output(utils::complex_app(), "clap-test --optio=foo", DYM, true);
 }
 
@@ -491,7 +480,7 @@ fn issue_1047_min_zero_vals_default_val() {
 
 fn issue_1105_setup(argv: Vec<&'static str>) -> Result<ArgMatches, clap::Error> {
     Command::new("opts")
-        .arg(arg!(-o --option <opt> "some option"))
+        .arg(arg!(-o --option <opt> "some option").required(true))
         .arg(arg!(--flag "some flag"))
         .try_get_matches_from(argv)
 }
@@ -552,7 +541,18 @@ fn issue_1105_empty_value_short_explicit_no_space() {
 
 #[test]
 #[cfg(feature = "suggestions")]
+#[cfg(feature = "error-context")]
 fn issue_1073_suboptimal_flag_suggestion() {
+    static DYM_ISSUE_1073: &str = "\
+error: Found argument '--files-without-matches' which wasn't expected, or isn't valid in this context
+
+  Did you mean '--files-without-match'?
+
+Usage: ripgrep-616 --files-without-match
+
+For more information try '--help'
+";
+
     let cmd = Command::new("ripgrep-616")
         .arg(
             Arg::new("files-with-matches")
@@ -575,7 +575,7 @@ fn issue_1073_suboptimal_flag_suggestion() {
 #[test]
 fn short_non_ascii_no_space() {
     let matches = Command::new("cmd")
-        .arg(arg!(opt: -'磨' <opt>))
+        .arg(arg!(opt: -'磨' <opt>).required(true))
         .try_get_matches_from(&["test", "-磨VALUE"])
         .unwrap();
 
@@ -591,7 +591,7 @@ fn short_non_ascii_no_space() {
 #[test]
 fn short_eq_val_starts_with_eq() {
     let matches = Command::new("cmd")
-        .arg(arg!(opt: -f <opt>))
+        .arg(arg!(opt: -f <opt>).required(true))
         .try_get_matches_from(&["test", "-f==value"])
         .unwrap();
 
@@ -607,7 +607,7 @@ fn short_eq_val_starts_with_eq() {
 #[test]
 fn long_eq_val_starts_with_eq() {
     let matches = Command::new("cmd")
-        .arg(arg!(opt: --foo <opt>))
+        .arg(arg!(opt: --foo <opt>).required(true))
         .try_get_matches_from(&["test", "--foo==value"])
         .unwrap();
 

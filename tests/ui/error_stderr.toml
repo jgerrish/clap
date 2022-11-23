@@ -5,10 +5,7 @@ stdout = ""
 stderr = """
 error: Found argument '--unknown-argument' which wasn't expected, or isn't valid in this context
 
-\tIf you tried to supply `--unknown-argument` as a value rather than a flag, use `-- --unknown-argument`
+Usage: stdio-fixture[EXE] [OPTIONS] [COMMAND]
 
-USAGE:
-    stdio-fixture[EXE] [OPTIONS] [SUBCOMMAND]
-
-For more information try --help
+For more information try '--help'
 """

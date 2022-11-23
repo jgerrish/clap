@@ -6,6 +6,9 @@
 //!
 //! * **std**: _Not Currently Used._ Placeholder for supporting `no_std` environments in a backwards compatible manner.
 //! * **color**: Turns on colored error messages.
+//! * **help**: Auto-generate help output
+//! * **usage**: Auto-generate usage
+//! * **error-context**: Include contextual information for errors (which arg failed, etc)
 //! * **suggestions**: Turns on the `Did you mean '--myoption'?` feature for when users make typos.
 //!
 //! #### Optional features
@@ -16,6 +19,7 @@
 //! * **env**: Turns on the usage of environment variables during parsing.
 //! * **unicode**: Turns on support for unicode characters (including emoji) in arguments and help messages.
 //! * **wrap_help**: Turns on the help text wrapping feature, based on the terminal size.
+//! * **string**: Allow runtime generated strings (e.g. with [`Str`][crate::builder::Str]).
 //!
 //! #### Experimental features
 //!

@@ -401,7 +401,7 @@ fn option_max_more() {
 
 #[test]
 fn optional_value() {
-    let mut cmd = Command::new("test").arg(
+    let mut cmd = Command::new("test").args_override_self(true).arg(
         Arg::new("port")
             .short('p')
             .value_name("NUM")
@@ -426,17 +426,13 @@ fn optional_value() {
     assert!(m.contains_id("port"));
     assert_eq!(m.get_one::<String>("port").unwrap(), "42");
 
-    let mut help = Vec::new();
-    cmd.write_help(&mut help).unwrap();
+    let help = cmd.render_help().to_string();
     const HELP: &str = "\
-test 
+Usage: test [OPTIONS]
 
-USAGE:
-    test [OPTIONS]
-
-OPTIONS:
-    -p [<NUM>]        
-    -h, --help        Print help information
+Options:
+  -p [<NUM>]      
+  -h, --help      Print help information
 ";
     snapbox::assert_eq(HELP, help);
 }
@@ -1573,4 +1569,11 @@ fn issue_2229() {
 
     assert!(m.is_err());
     assert_eq!(m.unwrap_err().kind(), ErrorKind::WrongNumberOfValues);
+}
+
+#[test]
+#[should_panic = "Argument 'pos` is positional, it must take a value"]
+fn disallow_positionals_without_values() {
+    let cmd = Command::new("test").arg(Arg::new("pos").num_args(0));
+    cmd.debug_assert();
 }

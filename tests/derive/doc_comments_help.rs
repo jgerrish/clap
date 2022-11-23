@@ -14,7 +14,7 @@
 
 use crate::utils;
 
-use clap::{CommandFactory, Parser, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
 #[test]
 fn doc_comments() {
@@ -23,7 +23,7 @@ fn doc_comments() {
     struct LoremIpsum {
         /// Fooify a bar
         /// and a baz
-        #[clap(short, long)]
+        #[arg(short, long)]
         foo: bool,
     }
 
@@ -36,10 +36,10 @@ fn doc_comments() {
 fn help_is_better_than_comments() {
     /// Lorem ipsum
     #[derive(Parser, PartialEq, Debug)]
-    #[clap(name = "lorem-ipsum", about = "Dolor sit amet")]
+    #[command(name = "lorem-ipsum", about = "Dolor sit amet")]
     struct LoremIpsum {
         /// Fooify a bar
-        #[clap(short, long, help = "DO NOT PASS A BAR UNDER ANY CIRCUMSTANCES")]
+        #[arg(short, long, help = "DO NOT PASS A BAR UNDER ANY CIRCUMSTANCES")]
         foo: bool,
     }
 
@@ -55,27 +55,34 @@ fn empty_line_in_doc_comment_is_double_linefeed() {
     ///
     /// Bar
     #[derive(Parser, PartialEq, Debug)]
-    #[clap(name = "lorem-ipsum")]
+    #[command(name = "lorem-ipsum")]
     struct LoremIpsum {}
 
     let help = utils::get_long_help::<LoremIpsum>();
-    assert!(help.starts_with("lorem-ipsum \nFoo.\n\nBar\n\nUSAGE:"));
+    assert!(help.starts_with(
+        "\
+Foo.
+
+Bar
+
+Usage:"
+    ));
 }
 
 #[test]
 fn field_long_doc_comment_both_help_long_help() {
     /// Lorem ipsumclap
     #[derive(Parser, PartialEq, Debug)]
-    #[clap(name = "lorem-ipsum", about = "Dolor sit amet")]
+    #[command(name = "lorem-ipsum", about = "Dolor sit amet")]
     struct LoremIpsum {
         /// Dot is removed from multiline comments.
         ///
         /// Long help
-        #[clap(long)]
+        #[arg(long)]
         foo: bool,
 
         /// Dot is removed from one short comment.
-        #[clap(long)]
+        #[arg(long)]
         bar: bool,
     }
 
@@ -94,9 +101,9 @@ fn field_long_doc_comment_both_help_long_help() {
 fn top_long_doc_comment_both_help_long_help() {
     /// Lorem ipsumclap
     #[derive(Parser, Debug)]
-    #[clap(name = "lorem-ipsum", about = "Dolor sit amet")]
+    #[command(name = "lorem-ipsum", about = "Dolor sit amet")]
     struct LoremIpsum {
-        #[clap(subcommand)]
+        #[command(subcommand)]
         foo: SubCommand,
     }
 
@@ -106,7 +113,7 @@ fn top_long_doc_comment_both_help_long_help() {
         ///
         /// Or something else
         Foo {
-            #[clap(help = "foo")]
+            #[arg(help = "foo")]
             bars: String,
         },
     }
@@ -139,9 +146,9 @@ fn verbatim_doc_comment() {
     ///      ( ()    ||
     ///       (      () ) )
     #[derive(Parser, Debug)]
-    #[clap(verbatim_doc_comment)]
+    #[command(verbatim_doc_comment)]
     struct SeeFigure1 {
-        #[clap(long)]
+        #[arg(long)]
         foo: bool,
     }
 
@@ -171,10 +178,10 @@ fn verbatim_doc_comment_field() {
     #[derive(Parser, Debug)]
     struct Command {
         /// This help ends in a period.
-        #[clap(long, verbatim_doc_comment)]
+        #[arg(long, verbatim_doc_comment)]
         foo: bool,
         /// This help does not end in a period.
-        #[clap(long)]
+        #[arg(long)]
         bar: bool,
     }
 
@@ -191,7 +198,7 @@ fn multiline_separates_default() {
         /// Multiline
         ///
         /// Doc comment
-        #[clap(long, default_value = "x")]
+        #[arg(long, default_value = "x")]
         x: String,
     }
 
@@ -205,14 +212,26 @@ fn multiline_separates_default() {
 }
 
 #[test]
-fn argenum_multiline_doc_comment() {
-    #[derive(ValueEnum, Clone)]
+fn value_enum_multiline_doc_comment() {
+    #[derive(Parser, Debug)]
+    struct Command {
+        x: LoremIpsum,
+    }
+
+    #[derive(ValueEnum, Clone, PartialEq, Debug)]
     enum LoremIpsum {
-        /// Multiline
+        /// Doc comment summary
         ///
-        /// Doc comment
+        /// The doc comment body is ignored
         Bar,
     }
+
+    let help = utils::get_long_help::<Command>();
+
+    assert!(help.contains("Doc comment summary"));
+
+    // There is no long help text for possible values. The long help only contains the summary.
+    assert!(!help.contains("The doc comment body is ignored"));
 }
 
 #[test]
@@ -220,7 +239,7 @@ fn doc_comment_about_handles_both_abouts() {
     /// Opts doc comment summary
     #[derive(Parser, Debug)]
     pub struct Opts {
-        #[clap(subcommand)]
+        #[command(subcommand)]
         pub cmd: Sub,
     }
 
@@ -233,8 +252,54 @@ fn doc_comment_about_handles_both_abouts() {
     }
 
     let cmd = Opts::command();
-    assert_eq!(cmd.get_about(), Some("Opts doc comment summary"));
+    assert_eq!(
+        cmd.get_about().map(|s| s.to_string()),
+        Some("Opts doc comment summary".to_owned())
+    );
     // clap will fallback to `about` on `None`.  The main care about is not providing a `Sub` doc
     // comment.
     assert_eq!(cmd.get_long_about(), None);
+}
+
+#[test]
+fn respect_subcommand_doc_comment() {
+    #[derive(Parser, Debug)]
+    pub enum Cmd {
+        /// For child
+        #[command(subcommand)]
+        Child(Child),
+    }
+
+    #[derive(Subcommand, Debug)]
+    pub enum Child {
+        One,
+        Twp,
+    }
+
+    const OUTPUT: &str = "\
+Usage: cmd <COMMAND>
+
+Commands:
+  child  For child
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help information
+";
+    utils::assert_output::<Cmd>("cmd --help", OUTPUT, false);
+}
+
+#[test]
+fn force_long_help() {
+    /// Lorem ipsum
+    #[derive(Parser, PartialEq, Debug)]
+    struct LoremIpsum {
+        /// Fooify a bar
+        /// and a baz.
+        #[arg(short, long, long_help)]
+        foo: bool,
+    }
+
+    let help = utils::get_long_help::<LoremIpsum>();
+    assert!(help.contains("Fooify a bar and a baz."));
 }

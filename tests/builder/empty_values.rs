@@ -1,6 +1,7 @@
-use super::utils;
-
 use clap::{error::ErrorKind, Arg, ArgAction, Command};
+
+#[cfg(feature = "error-context")]
+use super::utils;
 
 #[test]
 fn empty_values() {
@@ -102,6 +103,7 @@ fn no_empty_values_without_equals() {
 }
 
 #[test]
+#[cfg(feature = "error-context")]
 fn no_empty_values_without_equals_but_requires_equals() {
     let cmd = Command::new("config").arg(
         Arg::new("config")
@@ -116,12 +118,11 @@ fn no_empty_values_without_equals_but_requires_equals() {
     assert_eq!(m.unwrap_err().kind(), ErrorKind::NoEquals);
 
     static NO_EUQALS_ERROR: &str =
-        "error: Equal sign is needed when assigning values to '--config=<config>'.
+        "error: Equal sign is needed when assigning values to '--config=<config>'
 
-USAGE:
-    config [OPTIONS]
+Usage: config [OPTIONS]
 
-For more information try --help
+For more information try '--help'
 ";
 
     utils::assert_output(cmd, "config --config", NO_EUQALS_ERROR, true);

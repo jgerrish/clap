@@ -1,5 +1,5 @@
 /// Command line argument parser kind of error
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ErrorKind {
     /// Occurs when an [`Arg`][crate::Arg] has a set of possible values,
@@ -250,7 +250,8 @@ pub enum ErrorKind {
     ///
     /// # Examples
     ///
-    /// ```rust
+    #[cfg_attr(not(feature = "help"), doc = " ```ignore")]
+    #[cfg_attr(feature = "help", doc = " ```")]
     /// # use clap::{Command, Arg, error::ErrorKind};
     /// let result = Command::new("prog")
     ///     .try_get_matches_from(vec!["prog", "--help"]);

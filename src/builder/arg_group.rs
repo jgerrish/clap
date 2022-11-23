@@ -1,4 +1,5 @@
 // Internal
+use crate::builder::IntoResettable;
 use crate::util::Id;
 
 /// Family of related [arguments].
@@ -36,7 +37,7 @@ use crate::util::Id;
 /// ```rust
 /// # use clap::{Command, arg, ArgGroup, error::ErrorKind};
 /// let result = Command::new("cmd")
-///     .arg(arg!(--"set-ver" <ver> "set the version manually").required(false))
+///     .arg(arg!(--"set-ver" <ver> "set the version manually"))
 ///     .arg(arg!(--major           "auto increase major"))
 ///     .arg(arg!(--minor           "auto increase minor"))
 ///     .arg(arg!(--patch           "auto increase patch"))
@@ -54,7 +55,7 @@ use crate::util::Id;
 /// ```rust
 /// # use clap::{Command, arg, ArgGroup, Id};
 /// let result = Command::new("cmd")
-///     .arg(arg!(--"set-ver" <ver> "set the version manually").required(false))
+///     .arg(arg!(--"set-ver" <ver> "set the version manually"))
 ///     .arg(arg!(--major           "auto increase major"))
 ///     .arg(arg!(--minor           "auto increase minor"))
 ///     .arg(arg!(--patch           "auto increase patch"))
@@ -148,8 +149,12 @@ impl ArgGroup {
     /// ```
     /// [argument]: crate::Arg
     #[must_use]
-    pub fn arg(mut self, arg_id: impl Into<Id>) -> Self {
-        self.args.push(arg_id.into());
+    pub fn arg(mut self, arg_id: impl IntoResettable<Id>) -> Self {
+        if let Some(arg_id) = arg_id.into_resettable().into_option() {
+            self.args.push(arg_id);
+        } else {
+            self.args.clear();
+        }
         self
     }
 
@@ -181,6 +186,23 @@ impl ArgGroup {
             self = self.arg(n);
         }
         self
+    }
+
+    /// Getters for all args. It will return a vector of `Id`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use clap::{ArgGroup};
+    /// let args: Vec<&str> = vec!["a1".into(), "a4".into()];
+    /// let grp = ArgGroup::new("program").args(&args);
+    ///
+    /// for (pos, arg) in grp.get_args().enumerate() {
+    ///     assert_eq!(*arg, args[pos]);
+    /// }
+    /// ```
+    pub fn get_args(&self) -> impl Iterator<Item = &Id> {
+        self.args.iter()
     }
 
     /// Allows more than one of the [`Arg`]s in this group to be used. (Default: `false`)
@@ -233,6 +255,23 @@ impl ArgGroup {
     pub fn multiple(mut self, yes: bool) -> Self {
         self.multiple = yes;
         self
+    }
+
+    /// Return true if the group allows more than one of the arguments
+    /// in this group to be used. (Default: `false`)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use clap::{ArgGroup};
+    /// let mut group = ArgGroup::new("myprog")
+    ///     .args(["f", "c"])
+    ///     .multiple(true);
+    ///
+    /// assert!(group.is_multiple());
+    /// ```
+    pub fn is_multiple(&mut self) -> bool {
+        self.multiple
     }
 
     /// Require an argument from the group to be present when parsing.
@@ -314,8 +353,12 @@ impl ArgGroup {
     /// [required group]: ArgGroup::required()
     /// [argument requirement rules]: crate::Arg::requires()
     #[must_use]
-    pub fn requires(mut self, id: impl Into<Id>) -> Self {
-        self.requires.push(id.into());
+    pub fn requires(mut self, id: impl IntoResettable<Id>) -> Self {
+        if let Some(id) = id.into_resettable().into_option() {
+            self.requires.push(id);
+        } else {
+            self.requires.clear();
+        }
         self
     }
 
@@ -397,8 +440,12 @@ impl ArgGroup {
     /// ```
     /// [argument exclusion rules]: crate::Arg::conflicts_with()
     #[must_use]
-    pub fn conflicts_with(mut self, id: impl Into<Id>) -> Self {
-        self.conflicts.push(id.into());
+    pub fn conflicts_with(mut self, id: impl IntoResettable<Id>) -> Self {
+        if let Some(id) = id.into_resettable().into_option() {
+            self.conflicts.push(id);
+        } else {
+            self.conflicts.clear();
+        }
         self
     }
 
@@ -453,6 +500,12 @@ impl ArgGroup {
     #[inline]
     pub fn get_id(&self) -> &Id {
         &self.id
+    }
+
+    /// Reports whether [`ArgGroup::required`] is set
+    #[inline]
+    pub fn is_required_set(&self) -> bool {
+        self.required
     }
 }
 
@@ -518,5 +571,26 @@ mod test {
     fn arg_group_send_sync() {
         fn foo<T: Send + Sync>(_: T) {}
         foo(ArgGroup::new("test"))
+    }
+
+    #[test]
+    fn arg_group_expose_is_multiple_helper() {
+        let args: Vec<Id> = vec!["a1".into(), "a4".into()];
+
+        let mut grp_multiple = ArgGroup::new("test_multiple").args(&args).multiple(true);
+        assert!(grp_multiple.is_multiple());
+
+        let mut grp_not_multiple = ArgGroup::new("test_multiple").args(&args).multiple(false);
+        assert!(!grp_not_multiple.is_multiple());
+    }
+
+    #[test]
+    fn arg_group_expose_get_args_helper() {
+        let args: Vec<Id> = vec!["a1".into(), "a4".into()];
+        let grp = ArgGroup::new("program").args(&args);
+
+        for (pos, arg) in grp.get_args().enumerate() {
+            assert_eq!(*arg, args[pos]);
+        }
     }
 }

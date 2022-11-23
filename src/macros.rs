@@ -46,13 +46,15 @@ macro_rules! crate_version {
 #[macro_export]
 macro_rules! crate_authors {
     ($sep:expr) => {{
-        static CACHED: clap::__macro_refs::once_cell::sync::Lazy<String> =
-            clap::__macro_refs::once_cell::sync::Lazy::new(|| {
-                env!("CARGO_PKG_AUTHORS").replace(':', $sep)
-            });
-
-        let s: &'static str = &*CACHED;
-        s
+        static authors: &str = env!("CARGO_PKG_AUTHORS");
+        if authors.contains(':') {
+            static CACHED: clap::__macro_refs::once_cell::sync::Lazy<String> =
+                clap::__macro_refs::once_cell::sync::Lazy::new(|| authors.replace(':', $sep));
+            let s: &'static str = &*CACHED;
+            s
+        } else {
+            authors
+        }
     }};
     () => {
         env!("CARGO_PKG_AUTHORS")
@@ -296,7 +298,9 @@ macro_rules! arg_impl {
 
                 let mut arg = $arg;
 
-                arg = arg.required(true);
+                if arg.get_long().is_none() && arg.get_short().is_none() {
+                    arg = arg.required(true);
+                }
 
                 let value_name = $crate::arg_impl! { @string $value_name };
                 if arg.get_id() == "" {
@@ -323,7 +327,9 @@ macro_rules! arg_impl {
 
                 let mut arg = $arg;
 
-                arg = arg.required(true);
+                if arg.get_long().is_none() && arg.get_short().is_none() {
+                    arg = arg.required(true);
+                }
 
                 let value_name = $crate::arg_impl! { @string $value_name };
                 if arg.get_id() == "" {
@@ -484,6 +490,9 @@ macro_rules! arg_impl {
 /// A long flag is a `--` followed by either a bare-word or a string, like `--foo` or
 /// `--"foo"`.
 ///
+/// **NOTE:** Dashes in the long name (e.g. `--foo-bar`) is not supported and quoting is required
+/// (e.g. `--"foo-bar"`).
+///
 /// See [`Arg::long`][crate::Arg::long].
 ///
 /// ### Values (Value Notation)
@@ -524,7 +533,7 @@ macro_rules! arg_impl {
 /// assert_eq!(*m.get_one::<u8>("debug").unwrap(), 0);
 /// assert_eq!(m.get_one::<String>("input"), None);
 /// ```
-/// [`Arg`]: ./struct.Arg.html
+/// [`Arg`]: crate::Arg
 #[macro_export]
 macro_rules! arg {
     ( $name:ident: $($tail:tt)+ ) => {
@@ -639,10 +648,11 @@ macro_rules! debug {
     ($($arg:tt)*) => ({
         let prefix = format!("[{:>w$}] \t", module_path!(), w = 28);
         let body = format!($($arg)*);
-        let mut color = $crate::output::fmt::Colorizer::new($crate::output::fmt::Stream::Stderr, $crate::ColorChoice::Auto);
-        color.hint(prefix);
-        color.hint(body);
-        color.none("\n");
+        let mut styled = $crate::builder::StyledStr::new();
+        styled.hint(prefix);
+        styled.hint(body);
+        styled.none("\n");
+        let color = $crate::output::fmt::Colorizer::new($crate::output::fmt::Stream::Stderr, $crate::ColorChoice::Auto).with_content(styled);
         let _ = color.print();
     })
 }
@@ -650,4 +660,26 @@ macro_rules! debug {
 #[cfg(not(feature = "debug"))]
 macro_rules! debug {
     ($($arg:tt)*) => {};
+}
+
+macro_rules! ok {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(err) => {
+                return Err(err);
+            }
+        }
+    };
+}
+
+macro_rules! some {
+    ($expr:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => {
+                return None;
+            }
+        }
+    };
 }

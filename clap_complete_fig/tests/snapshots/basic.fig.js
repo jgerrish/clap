@@ -22,16 +22,16 @@ const completion: Fig.Spec = {
     {
       name: "help",
       description: "Print this message or the help of the given subcommand(s)",
-      options: [
+      subcommands: [
         {
-          name: "-c",
+          name: "test",
+          description: "Subcommand",
+        },
+        {
+          name: "help",
+          description: "Print this message or the help of the given subcommand(s)",
         },
       ],
-      args: {
-        name: "subcommand",
-        isVariadic: true,
-        isOptional: true,
-      },
     },
   ],
   options: [
